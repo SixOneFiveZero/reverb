@@ -1,6 +1,6 @@
-use std::{sync::mpsc::{self, Sender}, time::Duration};
+use std::{sync::mpsc::{self}, time::Duration};
 
-use crate::{Command, MAIN_SENDER, external::external::ExternalType, internal::{playlist::Playlist, song::Song}};
+use crate::{Command, MAIN_SENDER, external::external::ExternalType, internal::song::Song};
 use reverb_core::failure::failure::{Failure, FailureType};
 
 pub(super) fn play() -> Result<(), Failure> {

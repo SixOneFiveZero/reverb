@@ -6,7 +6,7 @@ use rustls::pki_types::CertificateDer;
 
 use anyhow::{Result, anyhow};
 
-use crate::{CONFIG, Command, MAIN_SENDER, config::internet::ServerConfig, ui::cli, };
+use crate::{CONFIG, Command, MAIN_SENDER, config::internet::ServerConfig};
 use reverb_core::{network_command::helpers::QueryOrNotify, failure::failure::{Failure, FailureType}, network::Packet};
 
 

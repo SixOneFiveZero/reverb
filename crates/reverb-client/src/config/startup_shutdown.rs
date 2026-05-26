@@ -3,7 +3,7 @@ use anyhow::anyhow;
 
 use crate::{CONFIG_FOLDER, CONFIG, DATA_FOLDER, 
     config::{config::Config, data::StartupData}, 
-    internal::{internal::Internal, playlist::Playlist}};
+    internal::internal::Internal};
 
 use reverb_core::failure::failure::{Failure, FailureType};
 
