@@ -1,12 +1,12 @@
 use std::{fs, net::SocketAddr, sync::Arc};
 
-use quinn::Connection;
+use quinn::{Connection, TransportConfig};
 use quinn_proto::crypto::rustls::QuicClientConfig;
 use rustls::pki_types::CertificateDer;
 
 use anyhow::{Result, anyhow};
 
-use crate::{CONFIG, Command, MAIN_SENDER, config::internet::ServerConfig, };
+use crate::{CONFIG, Command, MAIN_SENDER, config::internet::ServerConfig, ui::cli, };
 use reverb_core::{network_command::helpers::QueryOrNotify, failure::failure::{Failure, FailureType}, network::Packet};
 
 
@@ -69,14 +69,18 @@ async fn connect_to(server_config: ServerConfig) -> Result<Connection, Failure> 
 
 
     // Wrap the client crypto config in a Quinn QUIC client config
-    let client_config = match QuicClientConfig::try_from(client_crypto) {
+    let mut client_config = match QuicClientConfig::try_from(client_crypto) {
         Ok(c) => quinn::ClientConfig::new(Arc::new(c)),
         Err(e) => {
             return Err(Failure::from((e.into(), FailureType::Warning)));
         }
     };
-    let client_config =
-        client_config;
+
+    // set the keep alive
+    let mut transport_config = TransportConfig::default();
+    transport_config.keep_alive_interval(Some(std::time::Duration::from_secs(5)));
+    client_config.transport_config(transport_config.into());
+
     // Create a new QUIC endpoint for the client, binding to an ephemeral port on all interfaces
     let addr = "[::]:0".parse::<SocketAddr>()
         .map_err(|e| Failure::from((e.into(), FailureType::Warning)))?;
