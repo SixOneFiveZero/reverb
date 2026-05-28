@@ -3,7 +3,7 @@ use std::sync::atomic::Ordering;
 use anyhow::anyhow;
 
 use compact_str::ToCompactString;
-use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{ID::NetworkCommandID, default_command::DefaultCommand, get_online_users::GetOnlineUsers, online_users::UserInfo, set_echo_availability::SetEchoAvailability}};
+use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{ID::NetworkCommandID, default_command::DefaultCommand, get_online_users::GetOnlineUsers, online_users::UserInfo, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus}};
 use crate::{NEXT_USER_ID, SERVER_GROUP, SERVER_NAME, command_handling, network::connection::{User, add_user}};
 
 
@@ -21,6 +21,10 @@ pub fn handle_packet(packet: Packet, user_id: &u64) -> Result<Option<Packet>, Fa
         },
         SetEchoAvailability::ID => {
             command_handling::handle_set_echo_availability(packet, user_id)?;
+            Ok(None)
+        },
+        SetOnlineStatus::ID => {
+            command_handling::handle_set_online_status(packet, user_id)?;
             Ok(None)
         },
         _ => {Err(Failure::from((anyhow!("packet handling error: command not found"), FailureType::Warning)))}

@@ -143,6 +143,9 @@ impl User {
     pub fn set_echo_status(&mut self, open_to_echo: bool) {
         self.user_info.open_to_echo = open_to_echo;
     }
+    pub fn set_online_status(&mut self, online_status: bool) {
+        self.show_online = online_status;
+    }
 }
 
 #[derive(Debug, Clone)]

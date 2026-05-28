@@ -3,7 +3,7 @@ use crate::{ONLINE_USERS, OPEN_USERS};
 use anyhow::anyhow;
 
 use compact_str::ToCompactString;
-use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{helpers::NetworkCommand, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability}};
+use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{helpers::NetworkCommand, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus}};
 use crate::USERS;
 
 pub fn handle_get_online_users(_packet: Packet) -> Box<dyn NetworkCommand + Send + Sync> {
@@ -26,7 +26,6 @@ fn try_get_set_echo_availability(item: &Box<dyn NetworkCommand + Send + Sync>) -
         Err(Failure::from((anyhow!("failed to read SetEchoAvailability from Box"), FailureType::Warning)))
     }
 }
-
 pub fn handle_set_echo_availability(packet: Packet, user_id: &u64) -> Result<(), Failure> {
     let command = try_get_set_echo_availability(packet.payload())?;
     let new_status = command.0;
@@ -40,4 +39,27 @@ pub fn handle_set_echo_availability(packet: Packet, user_id: &u64) -> Result<(),
     }
 
     Err(Failure::from((anyhow!("failed to set echo availability for user_id: {user_id}"), FailureType::Warning)))
+}
+
+fn try_get_set_online_status(item: &Box<dyn NetworkCommand + Send + Sync>) -> Result<SetOnlineStatus, Failure> {
+    if let Some(command) = item.as_any().downcast_ref::<SetOnlineStatus>() {
+        Ok(command.clone())
+    } else {
+        Err(Failure::from((anyhow!("failed to read SetOnlineStatus from Box"), FailureType::Warning)))
+    }
+}
+
+pub fn handle_set_online_status(packet: Packet, user_id: &u64) -> Result<(), Failure> {
+    let command = try_get_set_online_status(packet.payload())?;
+    let new_status = command.0;
+    if let Some(mut user) = USERS.get_mut(user_id) {
+        user.value_mut().set_online_status(new_status);
+        match new_status {
+            true => {ONLINE_USERS.insert(*user_id);},
+            false => {ONLINE_USERS.remove(user_id);},
+        }
+        return Ok(());
+    }
+
+    Err(Failure::from((anyhow!("failed to set online status for user_id: {user_id}"), FailureType::Warning)))
 }

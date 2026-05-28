@@ -1,4 +1,4 @@
-use crate::network_command::{default_command::DefaultCommand, echo::Echo, get_online_users::GetOnlineUsers, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, skip::Skip, user_data::UserData};
+use crate::network_command::{default_command::DefaultCommand, echo::Echo, get_online_users::GetOnlineUsers, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus, skip::Skip, user_data::UserData};
 
 pub trait NetworkCommandID {
     const ID: u8;
@@ -24,4 +24,7 @@ impl NetworkCommandID for GetOnlineUsers {
 }
 impl NetworkCommandID for SetEchoAvailability {
     const ID: u8 = 6;
+}
+impl NetworkCommandID for SetOnlineStatus {
+    const ID: u8 = 7;
 }

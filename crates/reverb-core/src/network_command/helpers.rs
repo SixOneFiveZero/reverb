@@ -2,6 +2,7 @@ use std::any::Any;
 
 use crate::network_command::ID::NetworkCommandID;
 use crate::failure::failure::{Failure, FailureType};
+use crate::network_command::set_online_status::SetOnlineStatus;
 use crate::network_command::{default_command::DefaultCommand, echo::Echo, get_online_users::GetOnlineUsers, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, skip::Skip, user_data::UserData};
 use anyhow::anyhow;
 
@@ -23,6 +24,7 @@ pub fn parse_command(data: Vec<u8>) -> Result<Box<dyn NetworkCommand + Send + Sy
         GetOnlineUsers::ID => Ok(Box::new(GetOnlineUsers::parse(data)?)),
         UserData::ID => Ok(Box::new(UserData::parse(data)?)),
         SetEchoAvailability::ID => Ok(Box::new(SetEchoAvailability::parse(data)?)),
+        SetOnlineStatus::ID => Ok(Box::new(SetOnlineStatus::parse(data)?)),
         _ => Err(Failure::from((anyhow!("invalid command"), FailureType::Warning)))
     }
 }
