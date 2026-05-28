@@ -1,21 +1,19 @@
 use anyhow::anyhow;
 use reverb_core::network_command::ID::NetworkCommandID;
 use reverb_core::network_command::online_users::OnlineUsers;
-use std::sync::mpsc::Sender;
 use std::sync::{Mutex, Arc};
 use once_cell::sync::Lazy;
 
-use crate::ui::cli::startup::{self, Startup};
-use crate::{Command, DATA_FOLDER};
+use crate::ui::cli::startup::Startup;
+use crate::Command;
 use crate::ui::cli::cli_ui::{self, run_ui};
 use crate::ui::cli::command_spec::CommandCallType::{Args, NoArgs, NotCallable};
 use crate::ui::cli::command_spec::CommandSpec;
 use crate::ui::ui;
 use crate::{
     external::external::ExternalType,
-    internal::{playlist::Playlist, song::Song},
+    internal::song::Song,
 };
-use crate::MAIN_SENDER;
 
 use reverb_core::failure::failure::{Failure, FailureType};
 

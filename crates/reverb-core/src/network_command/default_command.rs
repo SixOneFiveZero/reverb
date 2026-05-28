@@ -1,7 +1,6 @@
 use std::any::Any;
 
-use crate::{network_command::{ID::NetworkCommandID, helpers::{NetworkCommand, QueryOrNotify}}, failure::failure::{Failure, FailureType}};
-use anyhow::anyhow;
+use crate::{network_command::{ID::NetworkCommandID, helpers::{NetworkCommand, QueryOrNotify}}, failure::failure::Failure};
 
 #[derive(Debug, Clone)]
 pub struct DefaultCommand {}
