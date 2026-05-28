@@ -1,10 +1,13 @@
+use std::sync::atomic::Ordering;
+
 use anyhow::anyhow;
 
-use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{ID::NetworkCommandID, default_command::DefaultCommand, get_online_users::GetOnlineUsers, set_echo_availability::SetEchoAvailability}};
-use crate::{SERVER_NAME, SERVER_GROUP, command_handling, network::connection::{UserAvailability, User, add_user}};
+use compact_str::ToCompactString;
+use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{ID::NetworkCommandID, default_command::DefaultCommand, get_online_users::GetOnlineUsers, online_users::UserInfo, set_echo_availability::SetEchoAvailability}};
+use crate::{NEXT_USER_ID, SERVER_GROUP, SERVER_NAME, command_handling, network::connection::{User, add_user}};
 
 
-pub fn handle_packet(packet: Packet, user_id: &u16) -> Result<Option<Packet>, Failure> {
+pub fn handle_packet(packet: Packet, user_id: &u64) -> Result<Option<Packet>, Failure> {
     match packet.payload.number() {
         DefaultCommand::ID => {Ok(Some(Packet::new(SERVER_NAME, SERVER_GROUP, Box::new(DefaultCommand{}))?))},
         GetOnlineUsers::ID => {
@@ -12,7 +15,7 @@ pub fn handle_packet(packet: Packet, user_id: &u16) -> Result<Option<Packet>, Fa
             Ok(Some(Packet {
                 version: NETWORK_VERSION,
                 username: SERVER_NAME.to_string(),
-                group: SERVER_GROUP.to_string(), 
+                group_id: SERVER_GROUP, 
                 payload: outgoing_command
             }))
         },
@@ -24,15 +27,16 @@ pub fn handle_packet(packet: Packet, user_id: &u16) -> Result<Option<Packet>, Fa
     }
 }
 
-pub fn handle_user_info(packet: Packet) -> u16 {
-    let username = packet.username;
-    let group = packet.group;
-    let availability = UserAvailability::ClosedToEcho;
-    let user = User {
-        username,
-        group,
-        availability
+pub fn register_new_user(packet: Packet) -> u64 {
+    let user_id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed); // wraps around when full overwriting existing users 
+    let username = packet.username.to_compact_string();
+    let user_info = UserInfo {
+        user_id,
+        group_id: 0,
+        open_to_echo: false,
     };
+    let online_status = true;
+    let user = User::new(username, user_info, online_status);
 
-    add_user(user)
+    add_user(user_id, user)
 }

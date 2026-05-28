@@ -102,9 +102,10 @@ async fn connect_to(server_config: ServerConfig) -> Result<Connection, Failure> 
 
     // send notification with complete header for server to identify us
     println!("sending information about self to server");
+    let config = CONFIG.get().ok_or(Failure::from((anyhow!("Config not created"), FailureType::Fatal)))?;
     let packet = Packet::new(
-        CONFIG.get().ok_or(Failure::from((anyhow!("Config not created"), FailureType::Fatal)))?.username.clone().as_str(),
-        "none",
+        &config.username,
+        0,
         Box::new(reverb_core::network_command::user_data::UserData {})
     )?;
     notify(conn.clone(), packet).await?;
@@ -139,7 +140,7 @@ async fn query(conn: Connection, packet: Packet) -> Result<(), Failure> {
             println!("Received response from server: ");
             println!("Response version: {:?}", response_packet.version());
             println!("Response username: {}", response_packet.username());
-            println!("Response group: {}", response_packet.group());
+            println!("Response group id: {}", response_packet.group_id());
             MAIN_SENDER.get().unwrap().clone().send(Command::ServerResponse(response_packet))
             .unwrap_or_else(|e| eprintln!("Failed to send server response command to main sender: {}", e));
         }

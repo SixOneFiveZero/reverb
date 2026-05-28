@@ -15,7 +15,7 @@ pub enum ConnectionStatus {
 
 pub struct InternetClient {
     connection_status: ConnectionStatus,
-    group: Option<String>
+    group_id: u32
 }
 
 impl InternetClient {
@@ -23,7 +23,7 @@ impl InternetClient {
         let _ = rustls::crypto::ring::default_provider().install_default();
         InternetClient { 
             connection_status: ConnectionStatus::NotConnected,
-            group: None
+            group_id: 0
         }
     }
 
@@ -53,7 +53,7 @@ impl InternetClient {
         println!("Attempting to send message to server: ");
         let packet = Packet::new(
             CONFIG.get().ok_or(Failure::from((anyhow!("Config not created"), FailureType::Fatal)))?.username.clone().as_str(),
-            self.group.clone().unwrap_or_else(|| "none".to_string()).as_str(),
+            self.group_id,
             command
         )?;
         match &mut self.connection_status {

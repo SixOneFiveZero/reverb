@@ -179,7 +179,7 @@ pub fn handle_command(command: Command) -> Result<(), Failure> {
                     if let Some(online_users) = packet.payload.as_any().downcast_ref::<OnlineUsers>() {
                         let mut users = String::new();
                         for user in &online_users.users {
-                            users.push_str(user.1.as_str());
+                            users.push_str(user.0.as_str());
                             users.push('\n');
                         }
                         cli_ui::show_text_in_right_third(&format!("Online users:\n{}", users));

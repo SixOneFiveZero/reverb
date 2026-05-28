@@ -1,12 +1,21 @@
-use std::{any::Any, collections::HashSet};
+use std::{any::Any, collections::HashMap};
 
-use crate::{network_command::{ID::NetworkCommandID, helpers::{NetworkCommand, QueryOrNotify}}, failure::failure::{Failure, FailureType}};
+use crate::{failure::failure::{Failure, FailureType}, network_command::{ID::NetworkCommandID, helpers::{NetworkCommand, QueryOrNotify}, online_users}};
 use anyhow::anyhow;
+use compact_str::CompactString;
 use postcard::{from_bytes, to_slice};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OnlineUsers {
-    pub users: HashSet<(u16, String)>
+    pub users: HashMap<CompactString, UserInfo>
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserInfo {
+    pub user_id: u64,
+    pub group_id: u32,
+    pub open_to_echo: bool,
 }
 
 impl NetworkCommand for OnlineUsers {
@@ -14,18 +23,31 @@ impl NetworkCommand for OnlineUsers {
         OnlineUsers::ID
     }
     fn serialize(&self) -> Result<Vec<u8>, Failure> {
+        let mut data = vec![];
+
         let mut buffer = [0u8; 512];
         let user_data = to_slice(&self.users, &mut buffer)
             .map_err(|e| Failure::from((anyhow!("failed to serialize OnlineUsers: {e}"), FailureType::Warning)))?;
-        let data = user_data.to_vec();
+        data.extend_from_slice(user_data);
 
         Ok(data)
     }
     fn parse(data: Vec<u8>) -> Result<Self, Failure> where Self: Sized {
-        let users: HashSet<(u16, String)> = from_bytes(&data[1..])
+        if data.len() < 2 {
+            return Err(Failure::from((anyhow!("OnlineUsers Parsing Error: No Online Users"), FailureType::Warning)));
+        }
+        let users: HashMap<CompactString, UserInfo> = from_bytes(&data[1..])
             .map_err(|e| Failure::from((anyhow!("failed to parse OnlineUsers: {e}"), FailureType::Warning)))?;
 
-        Ok(OnlineUsers { users })
+        for (user, info) in &users {
+            let a = info.user_id;
+            println!("{user}, {a}");
+        }
+        let online_users = OnlineUsers {
+            users
+        };
+        
+        Ok(online_users)
     }
 
     fn query_or_notify(&self) -> QueryOrNotify {

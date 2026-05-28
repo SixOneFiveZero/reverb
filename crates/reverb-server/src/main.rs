@@ -1,10 +1,9 @@
-use std::sync::{LazyLock, atomic::AtomicU16};
+use std::sync::{LazyLock, atomic::{AtomicU32, AtomicU64}};
+use dashmap::{DashMap, DashSet};
 use quinn::Endpoint;
-use arc_swap::ArcSwap;
-use im::HashMap as ImHashMap;
 
 use reverb_core::failure::failure::Failure;
-use crate::network::connection::{self, User};
+use crate::network::connection::{self, Group, User};
 
 mod network;
 mod server_startup;
@@ -15,10 +14,17 @@ mod command_handling;
 const LISTEN_ADDR: &str = "127.0.0.1:4433";
 // The server version, included in responses for client verification
 const SERVER_NAME: &str = "server";
-const SERVER_GROUP: &str = "server";
+const SERVER_GROUP: u32 = 0;
 
-static USERS: LazyLock<ArcSwap<ImHashMap<u16, User>>> = LazyLock::new(|| {ArcSwap::from_pointee(ImHashMap::new())});
-static NEXT_ID: AtomicU16 = AtomicU16::new(1);
+static USERS: LazyLock<DashMap<u64, User>> = LazyLock::new(DashMap::new);
+static ONLINE_USERS: LazyLock<DashSet<u64>> = LazyLock::new(DashSet::new);
+static OPEN_USERS: LazyLock<DashSet<u64>> = LazyLock::new(DashSet::new);
+static NEXT_USER_ID: AtomicU64 = AtomicU64::new(1);
+
+static GROUPS: LazyLock<DashMap<u32, Group>> = LazyLock::new(DashMap::new);
+static VISIBLE_GROUPS: LazyLock<DashSet<u32>> = LazyLock::new(DashSet::new);
+static OPEN_GROUPS: LazyLock<DashSet<u32>> = LazyLock::new(DashSet::new);
+static NEXT_GROUP_ID: AtomicU32 = AtomicU32::new(1);
 
 /// Entry point for the server. Installs the default crypto provider, starts the async runtime,
 /// and runs the main server logic. Exits with error code 1 if the server fails at startup or error
