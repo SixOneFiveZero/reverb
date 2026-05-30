@@ -8,3 +8,7 @@ pub mod set_echo_availability;
 pub mod skip;
 pub mod user_data;
 pub mod set_online_status;
+pub mod create_new_group;
+pub mod group_info;
+pub mod invite_to_group;
+pub mod group_invitation;

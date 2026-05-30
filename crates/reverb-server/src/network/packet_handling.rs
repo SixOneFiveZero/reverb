@@ -1,46 +1,46 @@
+// identify the command based on its ID, pass to handler function
+
 use std::sync::atomic::Ordering;
 
 use anyhow::anyhow;
 
 use compact_str::ToCompactString;
-use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{ID::NetworkCommandID, default_command::DefaultCommand, get_online_users::GetOnlineUsers, online_users::UserInfo, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus}};
-use crate::{NEXT_USER_ID, SERVER_GROUP, SERVER_NAME, command_handling, network::connection::{User, add_user}};
+use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{ID::NetworkCommandID, create_new_group::CreateNewGroup, default_command::DefaultCommand, get_online_users::GetOnlineUsers, helpers::NetworkCommand, online_users::UserInfo, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus}};
+use crate::{NEXT_USER_ID, SERVER_GROUP, SERVER_NAME, command_handling, network::user::{User, add_user}};
 
+fn create_response_packet(command: Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure>) -> Result<Option<Packet>, Failure> {
+    match command? {
+        Some(cmd) => {
+            Ok(Some(Packet {
+                version: NETWORK_VERSION,
+                username: SERVER_NAME.to_string(),
+                group_id: SERVER_GROUP,
+                payload: cmd
+            }))
+        },
+        None => {Ok(None)}
+    }
+}
 
 pub fn handle_packet(packet: Packet, user_id: &u64) -> Result<Option<Packet>, Failure> {
     match packet.payload.number() {
         DefaultCommand::ID => {Ok(Some(Packet::new(SERVER_NAME, SERVER_GROUP, Box::new(DefaultCommand{}))?))},
         GetOnlineUsers::ID => {
-            let outgoing_command = command_handling::handle_get_online_users(packet);
-            Ok(Some(Packet {
-                version: NETWORK_VERSION,
-                username: SERVER_NAME.to_string(),
-                group_id: SERVER_GROUP, 
-                payload: outgoing_command
-            }))
+            let outgoing = command_handling::handle_get_online_users(packet);
+            create_response_packet(outgoing)
         },
         SetEchoAvailability::ID => {
-            command_handling::handle_set_echo_availability(packet, user_id)?;
-            Ok(None)
+            let outgoing = command_handling::handle_set_echo_availability(packet, user_id);
+            create_response_packet(outgoing)
         },
         SetOnlineStatus::ID => {
-            command_handling::handle_set_online_status(packet, user_id)?;
-            Ok(None)
+            let outgoing = command_handling::handle_set_online_status(packet, user_id);
+            create_response_packet(outgoing)
+        },
+        CreateNewGroup::ID => {
+            let outgoing = command_handling::handle_create_new_group(packet, user_id);
+            create_response_packet(outgoing)
         },
         _ => {Err(Failure::from((anyhow!("packet handling error: command not found"), FailureType::Warning)))}
     }
-}
-
-pub fn register_new_user(packet: Packet) -> u64 {
-    let user_id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed); // wraps around when full overwriting existing users 
-    let username = packet.username.to_compact_string();
-    let user_info = UserInfo {
-        user_id,
-        group_id: 0,
-        open_to_echo: false,
-    };
-    let online_status = true;
-    let user = User::new(username, user_info, online_status);
-
-    add_user(user_id, user)
 }

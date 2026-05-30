@@ -6,7 +6,7 @@ use compact_str::CompactString;
 use postcard::{from_bytes, to_slice};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct OnlineUsers {
     pub users: HashMap<CompactString, UserInfo>
 }

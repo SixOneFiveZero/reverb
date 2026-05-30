@@ -3,7 +3,7 @@ use dashmap::{DashMap, DashSet};
 use quinn::Endpoint;
 
 use reverb_core::failure::failure::Failure;
-use crate::network::connection::{self, Group, User};
+use crate::network::{connection, group::Group, user::User};
 
 mod network;
 mod server_startup;

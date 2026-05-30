@@ -1,4 +1,4 @@
-use crate::network_command::{default_command::DefaultCommand, echo::Echo, get_online_users::GetOnlineUsers, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus, skip::Skip, user_data::UserData};
+use crate::network_command::{group_info::GroupInfo, create_new_group::CreateNewGroup, default_command::DefaultCommand, echo::Echo, get_online_users::GetOnlineUsers, group_invitation::GroupInvitation, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus, skip::Skip, user_data::UserData};
 
 pub trait NetworkCommandID {
     const ID: u8;
@@ -27,4 +27,13 @@ impl NetworkCommandID for SetEchoAvailability {
 }
 impl NetworkCommandID for SetOnlineStatus {
     const ID: u8 = 7;
+}
+impl NetworkCommandID for CreateNewGroup {
+    const ID: u8 = 8;
+}
+impl NetworkCommandID for GroupInfo {
+    const ID: u8 = 9;
+}
+impl NetworkCommandID for GroupInvitation {
+    const ID: u8 = 10;
 }

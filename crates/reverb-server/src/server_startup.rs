@@ -1,3 +1,5 @@
+// handles initial setup for networking and certificate
+
 use std::{fs, io, sync::Arc};
 use anyhow::anyhow;
 use quinn::Endpoint;

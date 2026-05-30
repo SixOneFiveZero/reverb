@@ -1,12 +1,42 @@
-use crate::{ONLINE_USERS, OPEN_USERS};
+// cast boxed NetworkCommand into a specific network command, then handle that command
+
+use std::{collections::HashSet, sync::atomic::Ordering};
+
+use crate::{GROUPS, NEXT_GROUP_ID, ONLINE_USERS, OPEN_USERS, VISIBLE_GROUPS, network::group::{Group, add_group}};
 
 use anyhow::anyhow;
 
 use compact_str::ToCompactString;
-use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{helpers::NetworkCommand, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus}};
+use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{group_info::GroupInfo, create_new_group::CreateNewGroup, helpers::NetworkCommand, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus}};
 use crate::USERS;
 
-pub fn handle_get_online_users(_packet: Packet) -> Box<dyn NetworkCommand + Send + Sync> {
+// helpers
+
+fn try_get_set_echo_availability(item: &Box<dyn NetworkCommand + Send + Sync>) -> Result<SetEchoAvailability, Failure> {
+    if let Some(command) = item.as_any().downcast_ref::<SetEchoAvailability>() {
+        Ok(command.clone())
+    } else {
+        Err(Failure::from((anyhow!("failed to read SetEchoAvailability from Box"), FailureType::Warning)))
+    }
+}
+fn try_get_set_online_status(item: &Box<dyn NetworkCommand + Send + Sync>) -> Result<SetOnlineStatus, Failure> {
+    if let Some(command) = item.as_any().downcast_ref::<SetOnlineStatus>() {
+        Ok(command.clone())
+    } else {
+        Err(Failure::from((anyhow!("failed to read SetOnlineStatus from Box"), FailureType::Warning)))
+    }
+}
+fn try_get_create_new_group(item: &Box<dyn NetworkCommand + Send + Sync>) -> Result<CreateNewGroup, Failure> {
+    if let Some(command) = item.as_any().downcast_ref::<CreateNewGroup>() {
+        Ok(command.clone())
+    } else {
+        Err(Failure::from((anyhow!("failed to read SetOnlineStatus from Box"), FailureType::Warning)))
+    }
+}
+
+// handlers
+
+pub fn handle_get_online_users(_packet: Packet) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
     let online_users = ONLINE_USERS.iter()
         .filter_map(|id_ref| {
             let id = *id_ref.key();
@@ -16,17 +46,10 @@ pub fn handle_get_online_users(_packet: Packet) -> Box<dyn NetworkCommand + Send
         })
         .collect();
     
-    Box::new(OnlineUsers { users: online_users }) 
+    Ok(Some(Box::new(OnlineUsers { users: online_users })))
 }
 
-fn try_get_set_echo_availability(item: &Box<dyn NetworkCommand + Send + Sync>) -> Result<SetEchoAvailability, Failure> {
-    if let Some(command) = item.as_any().downcast_ref::<SetEchoAvailability>() {
-        Ok(command.clone())
-    } else {
-        Err(Failure::from((anyhow!("failed to read SetEchoAvailability from Box"), FailureType::Warning)))
-    }
-}
-pub fn handle_set_echo_availability(packet: Packet, user_id: &u64) -> Result<(), Failure> {
+pub fn handle_set_echo_availability(packet: Packet, user_id: &u64) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
     let command = try_get_set_echo_availability(packet.payload())?;
     let new_status = command.0;
     if let Some(mut user) = USERS.get_mut(user_id) {
@@ -35,21 +58,13 @@ pub fn handle_set_echo_availability(packet: Packet, user_id: &u64) -> Result<(),
             true => {OPEN_USERS.insert(*user_id);},
             false => {OPEN_USERS.remove(user_id);},
         }
-        return Ok(());
+        return Ok(None);
     }
 
     Err(Failure::from((anyhow!("failed to set echo availability for user_id: {user_id}"), FailureType::Warning)))
 }
 
-fn try_get_set_online_status(item: &Box<dyn NetworkCommand + Send + Sync>) -> Result<SetOnlineStatus, Failure> {
-    if let Some(command) = item.as_any().downcast_ref::<SetOnlineStatus>() {
-        Ok(command.clone())
-    } else {
-        Err(Failure::from((anyhow!("failed to read SetOnlineStatus from Box"), FailureType::Warning)))
-    }
-}
-
-pub fn handle_set_online_status(packet: Packet, user_id: &u64) -> Result<(), Failure> {
+pub fn handle_set_online_status(packet: Packet, user_id: &u64) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
     let command = try_get_set_online_status(packet.payload())?;
     let new_status = command.0;
     if let Some(mut user) = USERS.get_mut(user_id) {
@@ -58,8 +73,32 @@ pub fn handle_set_online_status(packet: Packet, user_id: &u64) -> Result<(), Fai
             true => {ONLINE_USERS.insert(*user_id);},
             false => {ONLINE_USERS.remove(user_id);},
         }
-        return Ok(());
+        return Ok(None);
     }
 
     Err(Failure::from((anyhow!("failed to set online status for user_id: {user_id}"), FailureType::Warning)))
 }
+
+pub fn handle_create_new_group(packet: Packet, user_id: &u64) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
+    let command = try_get_create_new_group(packet.payload())?;
+
+    let group_id = NEXT_GROUP_ID.fetch_add(1, Ordering::Relaxed); // wraps around when full overwriting existing users 
+    let group = Group {
+        group_name: command.group_name.clone(),
+        users: HashSet::new(),
+        host: *user_id,
+        is_group_open: command.open,
+        is_group_visible: command.visible,
+    };
+    add_group(group_id, group);
+    
+    Ok(Some(Box::new(
+        GroupInfo {
+            id: group_id,
+            group_name: command.group_name,
+            visible: command.visible,
+            open: command.open
+        }
+    )))
+}
+

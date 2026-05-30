@@ -1,10 +1,12 @@
+// all networking/connection logic
+
 use std::{collections::HashSet};
 use anyhow::anyhow;
 use compact_str::CompactString;
 use quinn::{Connection, Incoming, RecvStream};
 
-use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::online_users::UserInfo};
-use crate::{ONLINE_USERS, OPEN_USERS, USERS, network::packet_handling::{handle_packet, register_new_user}};
+use reverb_core::{failure::failure::{Failure, FailureType}, network::*};
+use crate::{GROUPS, ONLINE_USERS, OPEN_GROUPS, OPEN_USERS, USERS, VISIBLE_GROUPS, network::{packet_handling::handle_packet, user::{User, register_new_user, remove_user}}};
 
 pub async fn handle_connection(conn: Incoming) -> Result<(), Failure> {
     let conn_bi = conn.await
@@ -37,22 +39,6 @@ pub async fn handle_connection(conn: Incoming) -> Result<(), Failure> {
     Ok(())
 }
 
-pub fn add_user(id: u64, user: User) -> u64 {
-    USERS.insert(id, user.clone());
-    if *user.online_status() {
-        ONLINE_USERS.insert(id);
-    }
-    if *user.open_to_echo() {
-        OPEN_USERS.insert(id);
-    }
-
-    id
-}
-pub fn remove_user(user_id: &u64) {
-    USERS.remove(user_id);
-    ONLINE_USERS.remove(user_id);
-    OPEN_USERS.remove(user_id);
-}
 
 async fn handle_bi(conn: &Connection, user_id: &u64) -> Result<(), Failure> {
     let (mut send, recv) = conn.accept_bi().await
@@ -97,62 +83,4 @@ async fn read_incoming(mut recv: RecvStream) -> Result<Vec<u8>, Failure> {
         .map_err(|e| Failure::from((e.into(), FailureType::Warning)))
 }
 
-#[derive(Debug, Clone)]
-pub struct User {
-    username: CompactString,
-    user_info: UserInfo,
-    show_online: bool,
-    is_group_visible: bool,
-}
 
-impl User {
-    // general user info functions
-    pub fn username(&self) -> &CompactString {
-        &self.username
-    }
-    pub fn group_id(&self) -> &u32 {
-        if self.is_group_visible {
-            &self.user_info.group_id
-        } else {
-            &0
-        }
-    }
-    pub fn open_to_echo(&self) -> &bool {
-        &self.user_info.open_to_echo
-    }
-    pub fn user_info(&self, id: u64) -> UserInfo {
-        UserInfo {
-            user_id: id,
-            group_id: *self.group_id(),
-            open_to_echo: *self.open_to_echo(),
-        }
-    }
-
-    // server functions
-    pub fn online_status(&self) -> &bool {
-        &self.show_online
-    }
-    pub fn new(username: CompactString, user_info: UserInfo, show_online: bool) -> Self {
-        Self {
-            username,
-            user_info,
-            show_online,
-            is_group_visible: false,
-        }
-    }
-    pub fn set_echo_status(&mut self, open_to_echo: bool) {
-        self.user_info.open_to_echo = open_to_echo;
-    }
-    pub fn set_online_status(&mut self, online_status: bool) {
-        self.show_online = online_status;
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Group {
-    pub group_name: String,
-    pub users: HashSet<u8>,
-    pub host: u16,
-    pub is_group_open: bool,
-    pub is_group_visible: bool,
-}
