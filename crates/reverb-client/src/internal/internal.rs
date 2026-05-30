@@ -1,7 +1,7 @@
 use reverb_core::network_command::get_online_users::GetOnlineUsers;
 use reverb_core::network_command::set_echo_availability::SetEchoAvailability;
 use crate::{
-    CONFIG, Command, MAIN_SENDER, external::external::{self, External, ExternalRun, ExternalType}, internal::{
+    CONFIG, Command, MAIN_SENDER, config::internet::ServerConfig, external::external::{self, External, ExternalRun, ExternalType}, internal::{
         internet, playlist::Playlist, queue::Queue, song::Song
     }
 };
@@ -351,11 +351,18 @@ impl Internal {
     }
 
     pub fn server_add(&mut self, name: String, address: String, certificate_path: String) -> Result<(), Failure> {
-        crate::config::internet::ServerConfig::new(&address, &name, &certificate_path)?;
+        let echo_avaliable = match ServerConfig::load() {
+            Ok(config) => config.echo_avaliable,
+            Err(_) => false,
+        };
+        crate::config::internet::ServerConfig::new(&address, &name, &certificate_path, echo_avaliable)?;
         Ok(())
     }
 
     pub fn server_set_echo_availability(&mut self, availability: bool) -> Result<(), Failure> {
+        let mut  server_config = crate::config::internet::ServerConfig::load()?;
+        server_config.echo_avaliable = availability;
+        server_config.save()?;
         self.server_connection.send_message(Box::new(SetEchoAvailability(availability)))
     }
 }

@@ -108,9 +108,11 @@ async fn connect_to(server_config: ServerConfig) -> Result<Connection, Failure> 
     println!("sending information about self to server");
     let config = CONFIG.get().ok_or(Failure::from((anyhow!("Config not created"), FailureType::Fatal)))?;
     let packet = Packet::new(
-        &config.username,
+        CONFIG.get().ok_or(Failure::from((anyhow!("Config not created"), FailureType::Fatal)))?.username.clone().as_str(),
         0,
-        Box::new(reverb_core::network_command::user_data::UserData {})
+        Box::new(reverb_core::network_command::user_data::UserData {
+            echo_avaliable: ServerConfig::load()?.echo_avaliable
+        })
     )?;
     notify(conn.clone(), packet).await?;
 
