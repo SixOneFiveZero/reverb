@@ -1,7 +1,8 @@
 use std::sync::mpsc;
 use anyhow::{Result, anyhow};
+use quinn::Side::Server;
 
-use crate::{CONFIG, DATA_FOLDER, config::internet::{self, ServerConfig}, internal::internet::communicator};
+use crate::{CONFIG, DATA_FOLDER, config::internet::{self, SERVER_CONFIG_PATH, ServerConfig}, internal::internet::communicator};
 use reverb_core::{network_command::helpers::NetworkCommand, failure::failure::{Failure, FailureType}, network::*};
 
 
@@ -38,10 +39,7 @@ impl InternetClient {
             ConnectionStatus::NotConnected => {
                 self.connection_status = ConnectionStatus::Connecting;
 
-                let data_folder = DATA_FOLDER.get().ok_or(Failure::from((anyhow!("Data folder not found"), FailureType::Fatal)))?.clone();
-                let server_config = toml::from_str::<ServerConfig>(&std::fs::read_to_string(format!("{}{}", data_folder, internet::SERVER_CONFIG_PATH))
-                    .map_err(|e| Failure::from((e.into(), "Failed to read server config, to add a server please run the server setup command", FailureType::Warning)))?)
-                    .map_err(|e| Failure::from((e.into(), FailureType::Warning)))?;
+                let server_config = crate::config::internet::ServerConfig::load()?;
                 println!("Attempting to connect to server at {} with name {} and certificate path {}", server_config.server_address, server_config.server_name, server_config.server_cert_path);
                 communicator::start_communicator_thread(server_config);
                 Ok(())
