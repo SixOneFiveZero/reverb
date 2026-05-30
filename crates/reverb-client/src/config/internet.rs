@@ -1,4 +1,4 @@
-use crate::CONFIG;
+use crate::{CONFIG, CONFIG_FOLDER};
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use reverb_core::failure::failure::{Failure, FailureType};
@@ -27,12 +27,8 @@ impl ServerConfig {
     }
 
     pub fn save(&self) -> Result<(), Failure> {
-        match std::fs::create_dir_all(CONFIG.get().ok_or(Failure::from((anyhow!("Config folder not found"), FailureType::Fatal)))?.data_folder.clone()) {
-            Err(e) => return Err(Failure::from((e.into(), FailureType::Warning))),
-            Ok(_) => {},
-        }
         match std::fs::write(
-            format!("{}server_config.toml", CONFIG.get().ok_or(Failure::from((anyhow!("Config folder not found"), FailureType::Fatal)))?.data_folder.clone()),
+            format!("{}server_config.toml", CONFIG_FOLDER),
             toml::to_string(self).map_err(|e| Failure::from((e.into(), FailureType::Warning)))?,
         ) {
             Err(e) => Err(Failure::from((e.into(), FailureType::Warning))),
@@ -41,8 +37,8 @@ impl ServerConfig {
     }
 
     pub fn load() -> Result<ServerConfig, Failure> {
-        let data_folder = crate::DATA_FOLDER.get().ok_or(Failure::from((anyhow!("Data folder not found"), FailureType::Fatal)))?.clone();
-        let server_config = toml::from_str::<ServerConfig>(&std::fs::read_to_string(format!("{}{}", data_folder, SERVER_CONFIG_PATH))
+        let config_folder = crate::CONFIG_FOLDER;
+        let server_config = toml::from_str::<ServerConfig>(&std::fs::read_to_string(format!("{}{}", config_folder, SERVER_CONFIG_PATH))
             .map_err(|e| Failure::from((e.into(), "Failed to read server config, to add a server please run the server setup command", FailureType::Warning)))?)
             .map_err(|e| Failure::from((e.into(), FailureType::Warning)))?;
         Ok(server_config)
