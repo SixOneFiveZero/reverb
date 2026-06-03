@@ -9,7 +9,7 @@ use ui::cli::cli;
 use reverb_core::failure::failure::{Failure, FailureType};
 
 use crate::{
-    config::{config::Config, startup_shutdown::{shutdown, startup}}, 
+    config::{startup_shutdown::{shutdown, startup}}, 
     external::external::ExternalType, 
     ui::cli::cli::print_failure,
 };
@@ -19,11 +19,6 @@ mod external;
 mod internal;
 mod ui;
 
-pub static CONFIG_FOLDER: &str = "configs/";
-pub static CONFIG: OnceCell<Config> = OnceCell::new();
-
-pub static DATA_FOLDER: OnceCell<String> = OnceCell::new();
-pub static LOCAL_SONG_FOLDER_PATH: OnceCell<String> = OnceCell::new();
 
 pub static MAIN_SENDER: OnceCell<mpsc::Sender<Command>> = OnceCell::new();
 

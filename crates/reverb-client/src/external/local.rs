@@ -8,7 +8,7 @@ use std::{fs::File, io::BufReader, path::Path, time::Duration, vec};
 use crate::{
     external::external::{External, ExternalSong::LOCAL, ExternalSongTrait}, 
     internal::song::{Song, SongInfo},
-    CONFIG,
+    config::config::config,
 };
 
 use reverb_core::failure::failure::{Failure, FailureType};
@@ -63,8 +63,7 @@ impl ExternalSongTrait for LocalSong {
     }
 
     fn new(path_str: &str) -> Result<Self, Failure> {
-        let path = Path::new(&CONFIG.get().ok_or(Failure::from((anyhow!("CONFIG not set"), FailureType::Fatal)))?
-            .local_song_folder_path).join(path_str);
+        let path = Path::new(&config()?.local_song_folder_path).join(path_str);
 
         let duration = {
             let tagged_file = Probe::open(&path)
