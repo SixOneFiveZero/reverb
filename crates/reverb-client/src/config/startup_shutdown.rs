@@ -1,36 +1,16 @@
 use std::path::Path;
 use anyhow::anyhow;
 
-use crate::{CONFIG_FOLDER, CONFIG, DATA_FOLDER, 
-    config::{config::Config, data::StartupData}, 
-    internal::internal::Internal};
-
+use crate::{config::{config::{Config, config}, data::StartupData}, internal::internal::Internal};
 use reverb_core::failure::failure::{Failure, FailureType};
 
 pub fn startup() -> Result<Internal, Failure> {
     println!("Starting up... ");
 
-    // Check for config file, create default if not exists
-    println!("Reading config... ");
-    let content = match std::fs::read_to_string(format!("{}config.toml", CONFIG_FOLDER)) {
-        Ok(c) => Ok(c),
-        Err(_) => {
-            println!("Config file not found, creating default... ");
-            let default = Config::new_default()?;
-            toml::to_string(&default).map_err(|e| Failure::from((e.into(), FailureType::Fatal)))?;
-            Err(Failure::from((anyhow!("First run?: \n Default config created in {} \n check config and restart \n exiting automatically", CONFIG_FOLDER), FailureType::Warning)))
-        }
-    }?;
+    Config::load()?;
 
-    println!("Setting global variables... ");
-    //read config
-    let config: Config = toml::from_str(&content).map_err(|e| Failure::from((e.into(), FailureType::Fatal)))?;
-    CONFIG.set(config).map_err(|_| Failure::from((anyhow!("Failed to set global config"), FailureType::Fatal)))?;
-
-    // Set DATA_FOLDER
-    DATA_FOLDER.set((CONFIG.get().unwrap().data_folder).clone()).map_err(|e| Failure::from((anyhow!(e), FailureType::Fatal)))?;
-
-    let data_folder = Path::new(DATA_FOLDER.get().unwrap());
+    let config = config()?;
+    let data_folder = Path::new(&config.data_folder);
     
     // if exists, use it if not create and use
     println!("Loading startup data... ");

@@ -2,15 +2,13 @@ use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    DATA_FOLDER,
-    external::{
+    config::config::config, external::{
         external::{ExternalSong, ExternalSongTrait},
         local::LocalSong,
-    },
-    internal::{
+    }, internal::{
         queue::Queue,
         song::{Song, SongInfo},
-    },
+    }
 };
 
 use reverb_core::failure::failure::{Failure, FailureType};
@@ -43,20 +41,14 @@ impl StartupData {
     }
 
     pub(super) fn save(&self) -> Result<(), Failure> {
-        match std::fs::create_dir_all(DATA_FOLDER.get().ok_or(Failure::from((
-            anyhow!("DATA_FOLDER not set"),
-            FailureType::Fatal,
-        )))?) {
+        match std::fs::create_dir_all(config()?.data_folder.clone()) {
             Err(e) => return Err(Failure::from((e.into(), FailureType::Fatal))),
             Ok(_) => {}
         }
         match std::fs::write(
             format!(
                 "{}startup.toml",
-                DATA_FOLDER.get().ok_or(Failure::from((
-                    anyhow!("DATA_FOLDER not set"),
-                    FailureType::Fatal
-                )))?
+                config()?.data_folder
             ),
             toml::to_string(self).map_err(|e| Failure::from((e.into(), FailureType::Fatal)))?,
         ) {
