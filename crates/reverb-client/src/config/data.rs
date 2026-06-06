@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 
 use crate::{

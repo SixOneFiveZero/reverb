@@ -9,6 +9,8 @@ use reverb_core::failure::failure::{Failure, FailureType};
 static SERVER_CONFIG_PATH: &str = "server_config.toml";
 static SERVER_CONFIG: OnceCell<ArcSwap<ServerConfig>> = OnceCell::new();
 
+/// ServerConfig struct represents the server config file.
+/// do not edit data directly, use the update_server_config function to update
 #[derive(Serialize, Deserialize)]
 pub struct ServerConfig {
     pub server_address: String,

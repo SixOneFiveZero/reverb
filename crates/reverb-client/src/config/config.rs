@@ -10,7 +10,8 @@ pub static CONFIG_FOLDER: &str = "configs/";
 static CONFIG: OnceCell<ArcSwap<Config>> = OnceCell::new();
 
 
-// Config struct represents the config file
+/// Config struct represents the config file.
+/// do not edit data directly, use the update_config function to update the config values, this will ensure that the config is saved after updating
 #[derive(Serialize, Deserialize)]
 pub struct Config {
     pub data_folder: String,
@@ -20,9 +21,8 @@ pub struct Config {
 
 impl Config {
     fn new_default() -> Result<Config, Failure> {
-        let username: String = random_range(0..=65535).to_string();
+        let username: String = "reverb_user_".to_string() + &random_range(0..=65535).to_string();
         let config = Config {
-            // device_name: "REVERB_user".to_string(),
             data_folder: "data/".to_string(),
             local_song_folder_path: "sample/".to_string(),
             username

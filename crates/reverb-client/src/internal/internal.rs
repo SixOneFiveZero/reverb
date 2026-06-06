@@ -10,7 +10,6 @@ use std::{num::NonZeroUsize, sync::mpsc};
 use lru::LruCache;
 use std::sync::mpsc::Sender;
 use std::{thread, time::Duration};
-use anyhow::anyhow;
 
 pub struct Internal {
     current_external: ExternalRun,
@@ -18,7 +17,6 @@ pub struct Internal {
     autoskip_kill_sender: Sender<()>,
     server_connection: internet::connection::InternetClient,
     playlists: LruCache<String, Playlist>,
-    ui_update_sender: Sender<()>,
 }
 
 // command handling
@@ -103,16 +101,13 @@ impl Internal {
 
 // general functions for internal state management
 impl Internal {
-    pub fn new(
-        queue: Queue,
-    ) -> Result<Self, Failure> {
+    pub fn new(queue: Queue) -> Result<Self, Failure> {
         Ok(Internal {
             current_external: external::get_new_external_run_from_song(&queue.current_song()?)?,
             queue,
             autoskip_kill_sender: mpsc::channel().0,
             server_connection: internet::connection::InternetClient::new(),
             playlists: LruCache::new(NonZeroUsize::new(10).unwrap()),
-            ui_update_sender: mpsc::channel().0,
         })
     }
 
@@ -360,7 +355,7 @@ impl Internal {
     }
 
     pub fn server_set_echo_availability(&mut self, availability: bool) -> Result<(), Failure> {
-        update_server_config(None, None, None, Some(availability));
+        update_server_config(None, None, None, Some(availability))?;
         self.server_connection.send_message(Box::new(SetEchoAvailability(availability)))
     }
 }

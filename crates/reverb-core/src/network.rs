@@ -33,7 +33,7 @@ impl fmt::Debug for Packet {
 
 impl Clone for Packet {
     fn clone(&self) -> Self {
-        let payload = parse_command(serialize(&self.payload).unwrap_or_default())
+        let payload = parse_command(serialize(&self.payload).unwrap_or_default()) // this is surely not the best way to do this?
             .unwrap_or_else(|_| Box::new(DefaultCommand {}));
 
         Packet {

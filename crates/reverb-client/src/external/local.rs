@@ -21,7 +21,7 @@ pub struct Local {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub(crate) struct LocalSong {
+pub struct LocalSong {
     song_path: String,
     duration: Duration,
 }

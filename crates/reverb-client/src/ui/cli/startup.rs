@@ -1,5 +1,4 @@
 use std::path::Path;
-use anyhow::anyhow;
 
 use reverb_core::failure::failure::{Failure, FailureType};
 
