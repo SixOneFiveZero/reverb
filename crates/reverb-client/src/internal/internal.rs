@@ -330,7 +330,7 @@ impl Internal {
     }
 }
 
-// server connection management
+// server management
 impl Internal {
     pub fn connect_to_server(&mut self) -> Result<(), Failure> {
         self.server_connection.connect()

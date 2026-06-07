@@ -325,15 +325,16 @@ fn create_song_list(size: (u16, u16), songs: Vec<song::Song>, text: &mut Vec<Str
                 push_width_aware(&mut song_text, name, "", "", text, size.0);
 
                 // add artists
-                let artists = &song.info.artists;
-                push_width_aware(
-                    &mut song_text,
-                    artists[0].as_str(),
-                    "  ",
-                    " - ",
-                    text,
-                    size.0,
-                );
+                for artist in song.info.artists.iter() {
+                    push_width_aware(
+                        &mut song_text,
+                        artist,
+                        "  ",
+                        " - ",
+                        text,
+                        size.0,
+                    );
+                }
 
                 // add type
                 let external_type = format!("({})", song.song_type.as_type());
