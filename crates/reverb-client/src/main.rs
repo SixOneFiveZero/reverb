@@ -58,8 +58,20 @@ fn main() {
     });
 
     for command in receive {
-        internal.handle_command(command.clone());// TODO , clone is maybe to expensive?
-        cli::handle_command(command.clone()); //TODO handle the errors aswell
+        match internal.handle_command(command.clone()) {
+            Ok(_) => {},
+            Err(failure) => match failure.failure_type() {
+                FailureType::Fatal => {print_failure(failure); break;},
+                FailureType::Warning => print_failure(failure),
+            },
+        };
+        match cli::handle_command(command.clone()) {
+            Ok(_) => {},
+            Err(failure) => match failure.failure_type() {
+                FailureType::Fatal => {print_failure(failure); break;},
+                FailureType::Warning => print_failure(failure),
+            },
+        }; //TODO handle the errors aswell
         match match command {
             Command::Shutdown => break,
             Command::Failure(failure) => Err(failure),
