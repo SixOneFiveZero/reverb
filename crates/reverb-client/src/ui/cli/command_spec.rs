@@ -68,12 +68,8 @@ impl CommandSpecNode {
         Ok(())
     }
 
-    fn handle(
-        &self,
-        input: Vec<&str>,
-        position: usize,
-        command_spec: &CommandSpec,
-    ) -> Result<(), Failure> {
+    /// Handle calling this command, only to be called on the correct node after traversing the command tree
+    fn handle(&self, input: Vec<&str>, position: usize, _command_spec: &CommandSpec) -> Result<(), Failure> {
         let args;
         match self.call_type {
             CommandCallType::NoArgs => {
@@ -104,12 +100,14 @@ impl CommandSpecNode {
         }
     }
 
+    /// Print the help for this command, if num_layers is greater than 0, also print the help for the subcommands, if num_layers is 0, only print the immediate children without their help text, but indicate that they have more help available
     fn print_help(&self, command_spec: &CommandSpec, num_layers: usize) {
         let mut out_string = String::from("Help:\n");
         self.parent(command_spec).sprint_help(command_spec, num_layers, &mut out_string);
         cli_ui::show_text_in_right_third(&out_string);
     }
 
+    /// Sprint help information recursively for this command and its children into out_string
     fn sprint_help(&self, command_spec: &CommandSpec, num_layers: usize, out_string: &mut String) {
         let mut prefix  = String::new();
         let mut current_parent = self.parent(command_spec);
@@ -132,6 +130,7 @@ impl CommandSpecNode {
         }
     }
 
+    /// Get the parent node for this node
     fn parent<'a>(&self, command_spec: &'a CommandSpec) -> &'a CommandSpecNode{
         command_spec.get(&self.parent).unwrap()
     }
@@ -238,6 +237,10 @@ impl CommandSpec {
         self
     }
 
+    /// Call a command from suer input.
+    /// in longer words this will: take the user input, parse it, 
+    /// traverse the command tree to find the correct command spec node, 
+    /// and then call the handler for that node with the remaining input as arguments
     pub fn call(&self, input: &str) -> Result<(), Failure> {
         let parts: Vec<&str> = input.split(' ').collect();
         self.root().call(parts, 0, &self)
