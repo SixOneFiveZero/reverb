@@ -2,7 +2,7 @@ use std::{collections::HashMap};
 
 use reverb_core::failure::failure::Failure;
 
-use crate::ui::cli::cli_ui;
+use crate::ui::cli::{cli_ui, command_spec::CommandCallType::Args};
 
 pub(super) struct CommandSpec {
     nodes: HashMap<String, CommandSpecNode>,
@@ -12,6 +12,7 @@ struct CommandSpecNode {
     valid_aliases: Vec<String>,
     help: String,
     children: Vec<String>,
+    parent: String,
     handler: Option<fn(&str) -> Result<(), Failure>>,
     call_type: CommandCallType,
 }
@@ -29,6 +30,7 @@ impl CommandSpecNode {
         help: String,
         handler: Option<fn(&str) -> Result<(), Failure>>,
         call_type: CommandCallType,
+        parent: &str,
     ) -> CommandSpecNode {
         CommandSpecNode {
             valid_aliases: valid_aliases.into_iter().map(|s| s.to_string()).collect(),
@@ -36,6 +38,7 @@ impl CommandSpecNode {
             children: Vec::new(),
             handler,
             call_type,
+            parent: parent.to_string(),
         }
     }
 
@@ -47,7 +50,7 @@ impl CommandSpecNode {
     ) -> Result<(), Failure> {
         // global help handling, if the current node is help, handle it here since it is a special case.
         if self.valid_aliases.contains(&"help".to_string()) {
-            command_spec.print_help(1);
+            self.print_help(command_spec, 1);
             return Ok(());
         }
 
@@ -95,32 +98,29 @@ impl CommandSpecNode {
         if valid && let Some(handler) = self.handler {
             handler(args.as_str())?;
         } else {
-            self.print_help(
-                command_spec,
-                format!("{}", input[0..position.saturating_sub(1)].join(" ")),
-                3,
-            );
+            self.print_help(command_spec,3);
         }
         Ok(())
     }
 
-    fn print_help(&self, command_spec: &CommandSpec, prefix: String, num_layers: usize) {
+    fn print_help(&self, command_spec: &CommandSpec, num_layers: usize) {
         let mut out_string = String::from("Help:\n");
-        self.sprint_help(command_spec, prefix, num_layers, &mut out_string);
+        self.parent(command_spec).sprint_help(command_spec, num_layers, &mut out_string);
         cli_ui::show_text_in_right_third(&out_string);
     }
 
-    fn sprint_help(&self, command_spec: &CommandSpec, prefix: String, num_layers: usize, out_string: &mut String) {
+    fn sprint_help(&self, command_spec: &CommandSpec, num_layers: usize, out_string: &mut String) {
+        let mut prefix  = String::new();
+        let mut current_parent = self.parent(command_spec);
+        while current_parent != command_spec.root() {
+            prefix = format!("{} {}", current_parent.valid_aliases.get(0).unwrap_or(&"".to_string()), prefix);
+            current_parent = current_parent.parent(command_spec);
+        }
         out_string.push_str(&format!("{} {}{}\n", prefix, self.valid_aliases.join(" | "), self.help));
         if num_layers > 0 {
-            let prefix = format!(
-                "{} {}",
-                prefix,
-                self.valid_aliases.get(0).unwrap_or(&"".to_string())
-            );
             for child in &self.children {
                 let node = command_spec.get(child).unwrap();
-                node.sprint_help(command_spec, format!("{} ", prefix), num_layers - 1, out_string);
+                node.sprint_help(command_spec, num_layers - 1, out_string);
             }
         } else if self.children.len() > 0 {
             out_string.push_str(&format!(
@@ -129,6 +129,17 @@ impl CommandSpecNode {
                 self.valid_aliases.join(" | ")
             ));
         }
+    }
+
+    fn parent<'a>(&self, command_spec: &'a CommandSpec) -> &'a CommandSpecNode{
+        command_spec.get(&self.parent).unwrap()
+    }
+}
+
+impl PartialEq for CommandSpecNode {
+    fn eq(&self, other: &Self) -> bool {
+        self.valid_aliases == other.valid_aliases
+            && self.parent == other.parent
     }
 }
 
@@ -144,11 +155,20 @@ impl CommandSpec {
                 "REVERB commands:".to_string(),
                 None,
                 CommandCallType::NotCallable,
+                "root",
             ),
         );
         command_spec
     }
 
+    /// Add a command to the command spec
+    /// Args:
+    /// - name: the name of the command, this is used for referencing the command when adding children, it is not used for matching user input, all names must be unique
+    /// - valid_aliases: the valid aliases for the command, this is used for matching user input, at least one alias must be provided, aliases cannot contain spaces
+    /// - help: the help string for the command, this is shown in the help menu for the command
+    /// - handler: the function that is called when the command is called, this should be None for commands that are not directly callable
+    /// - call_type: the type of the command, this determines how the command is called, ie how to handle input after this command, a callable command with args cannot have children
+    /// - parent: the name of the parent command, if None, the command is added as a child of the root command, this is the name provided when adding the parent command, not any alias
     pub fn add(
         mut self,
         name: &str,
@@ -159,13 +179,22 @@ impl CommandSpec {
         parent: Option<&str>,
     ) -> CommandSpec {
         let name = name.to_string();
+
+        // check inputs are valid
         if self.nodes.contains_key(&name) {
-            unreachable!(
-                "Command spec node with name {} already exists, this should not be possible please report this bug",
-                name
-            );
+            unreachable!("Command spec node with name {} already exists, this should not be possible please report this bug", name);
         }
-        let node = CommandSpecNode::new(valid_aliases, help.to_string(), handler, call_type);
+        if valid_aliases.len() == 0 {
+            unreachable!("Command spec node must have at least one valid alias, this should not be possible please report this bug");
+        }
+        for alias in &valid_aliases {
+            if alias.contains(' ') {
+                unreachable!("Command spec node aliases cannot contain spaces, invalid alias: {}, this should not be possible please report this bug", alias);
+            }
+        }
+
+        let add_help_child = call_type != Args && !valid_aliases.contains(&"help");// calculated here before moving values in node creation
+        let node = CommandSpecNode::new(valid_aliases, help.to_string(), handler, call_type, parent.unwrap_or("root"));
         self.nodes.insert(name.clone(), node);
         match parent {
             Some(parent) => match self.nodes.get(&parent.to_string()) {
@@ -180,11 +209,10 @@ impl CommandSpec {
                             }
                         }
                     }
-                    self.nodes
-                        .get_mut(&parent.to_string())
-                        .unwrap()
-                        .children
-                        .push(name);
+                    if parent_node.call_type == Args {
+                        unreachable!("Parent node {} is an args command, it cannot have children, this should not be possible please report this bug",parent);
+                    }
+                    self.nodes.get_mut(&parent.to_string()).unwrap().children.push(name.clone());
                 }
                 None => {
                     unreachable!(
@@ -193,7 +221,18 @@ impl CommandSpec {
                     )
                 }
             },
-            None => self.root_mut().children.push(name),
+            None => self.root_mut().children.push(name.clone()),
+        }
+        if add_help_child {
+            // add a help child node 
+            self = self.add(
+                format!("{}_help", name).as_str(),
+                vec!["help"],
+                format!(" : Show help for {} command", name).as_str(),
+                None,
+                CommandCallType::NoArgs,
+                Some(name.as_str()),
+            );
         }
         self
     }
@@ -213,10 +252,6 @@ impl CommandSpec {
 
     fn root(&self) -> &CommandSpecNode {
         self.nodes.get("root").unwrap()
-    }
-
-    pub fn print_help(&self, num_layers: usize) {
-        self.root().print_help(&self, String::new(), num_layers);
     }
 }
 
