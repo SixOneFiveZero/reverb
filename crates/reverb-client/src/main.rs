@@ -71,7 +71,7 @@ fn main() {
                 FailureType::Fatal => {print_failure(failure); break;},
                 FailureType::Warning => print_failure(failure),
             },
-        }; //TODO handle the errors aswell
+        };
         match match command {
             Command::Shutdown => break,
             Command::Failure(failure) => Err(failure),

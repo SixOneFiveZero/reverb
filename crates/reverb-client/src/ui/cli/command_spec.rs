@@ -1,6 +1,7 @@
 use std::{collections::HashMap};
 
-use reverb_core::failure::failure::Failure;
+use reverb_core::failure::failure::{Failure, FailureType};
+use anyhow::anyhow;
 
 use crate::ui::cli::{cli_ui, command_spec::CommandCallType::Args};
 
@@ -73,34 +74,34 @@ impl CommandSpecNode {
         position: usize,
         command_spec: &CommandSpec,
     ) -> Result<(), Failure> {
-        let mut valid = true;
         let args;
         match self.call_type {
             CommandCallType::NoArgs => {
                 if input.len() > position {
-                    println!("Command does not take arguments");
-                    valid = false;
+                    return Err(Failure::from((anyhow!("Command {} does not take arguments", input[..position].join(" ")), FailureType::Warning)));
                 }
                 args = String::new();
             }
             CommandCallType::Args => {
                 if input.len() <= position {
-                    println!("Command requires arguments");
-                    valid = false;
+                    return Err(Failure::from((anyhow!("Command {} requires arguments", input[..position].join(" ")), FailureType::Warning)));
                 }
                 args = input[position..input.len()].join(" ");
             }
             CommandCallType::NotCallable => {
-                valid = false;
-                args = String::new(); // this is just to satisfy the borrow checker, this value will never be used since valid is false
+                if input.len() <= position {
+                    return Err(Failure::from((anyhow!("Command {} is not callable", input[..position].join(" ")), FailureType::Warning)));
+                } else {
+                    return Err(Failure::from((anyhow!("Command {} is not callable, unexpected arguments: {}", input[..position].join(" "), input[position..].join(" ")), FailureType::Warning)));
+                } 
             }
         }
-        if valid && let Some(handler) = self.handler {
+        if let Some(handler) = self.handler {
             handler(args.as_str())?;
+            Ok(())
         } else {
-            self.print_help(command_spec,3);
+            unreachable!("Command spec node {} has no handler, this should not be possible please report this bug", self.valid_aliases.get(0).unwrap_or(&"".to_string()));
         }
-        Ok(())
     }
 
     fn print_help(&self, command_spec: &CommandSpec, num_layers: usize) {
@@ -227,7 +228,7 @@ impl CommandSpec {
             // add a help child node 
             self = self.add(
                 format!("{}_help", name).as_str(),
-                vec!["help"],
+                vec!["help", "h"],
                 format!(" : Show help for {} command", name).as_str(),
                 None,
                 CommandCallType::NoArgs,
