@@ -455,12 +455,22 @@ pub fn show_text_in_right_third(text: &str) {
                 break;
             }
         }
+        if current_line >= height - 20 {
+            break;
+        }
     }
     for i in current_line..(height - 19) {
         let _ = queue!(
             stdout,
             cursor::MoveTo(right_start, i),
             Print(" ".repeat(right_width as usize)),
+        );
+    }
+    if current_line == height - 20 {
+        let _ = queue!(
+            stdout,
+            cursor::MoveTo(right_start, current_line as u16),
+            Print("...".to_string() + &" ".repeat((right_width - 3) as usize)),
         );
     }
     let _ = queue!(
