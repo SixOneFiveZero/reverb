@@ -195,5 +195,5 @@ pub fn handle_command(command: Command) -> Result<(), Failure> {
 
 pub fn print_failure(err: Failure) {
     println!("{}\nuse help for help\n", err);
-    cli_ui::show_text_in_right_third(&format!("Error:\n{}", err));
+    cli_ui::show_text_in_right_third(&format!("Error: (use help for help)\n{}", err));
 }
