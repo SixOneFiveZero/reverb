@@ -2,12 +2,12 @@
 
 use std::{collections::HashSet, sync::atomic::Ordering};
 
-use crate::{GROUPS, NEXT_GROUP_ID, ONLINE_USERS, OPEN_USERS, VISIBLE_GROUPS, network::group::{Group, add_group}};
+use crate::{NEXT_GROUP_ID, ONLINE_USERS, OPEN_USERS, network::group::{Group, add_group}};
 
 use anyhow::anyhow;
 
 use compact_str::ToCompactString;
-use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{group_info::GroupInfo, create_new_group::CreateNewGroup, helpers::NetworkCommand, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus}};
+use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{create_new_group::CreateNewGroup, group_info::GroupInfo, helpers::NetworkCommand, invite_to_group::InviteToGroup, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus}};
 use crate::USERS;
 
 // helpers
@@ -30,7 +30,14 @@ fn try_get_create_new_group(item: &Box<dyn NetworkCommand + Send + Sync>) -> Res
     if let Some(command) = item.as_any().downcast_ref::<CreateNewGroup>() {
         Ok(command.clone())
     } else {
-        Err(Failure::from((anyhow!("failed to read SetOnlineStatus from Box"), FailureType::Warning)))
+        Err(Failure::from((anyhow!("failed to read CreateNewGroup from Box"), FailureType::Warning)))
+    }
+}
+fn try_get_invite_to_group(item: &Box<dyn NetworkCommand + Send + Sync>) -> Result<InviteToGroup, Failure> {
+    if let Some(command) = item.as_any().downcast_ref::<InviteToGroup>() {
+        Ok(command.clone())
+    } else {
+        Err(Failure::from((anyhow!("failed to read InviteToGroup from Box"), FailureType::Warning)))
     }
 }
 
@@ -82,7 +89,7 @@ pub fn handle_set_online_status(packet: Packet, user_id: &u64) -> Result<Option<
 pub fn handle_create_new_group(packet: Packet, user_id: &u64) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
     let command = try_get_create_new_group(packet.payload())?;
 
-    let group_id = NEXT_GROUP_ID.fetch_add(1, Ordering::Relaxed); // wraps around when full overwriting existing users 
+    let group_id = NEXT_GROUP_ID.fetch_add(1, Ordering::Relaxed); // wraps around when full overwriting existing groups
     let group = Group {
         group_name: command.group_name.clone(),
         users: HashSet::new(),
@@ -97,8 +104,19 @@ pub fn handle_create_new_group(packet: Packet, user_id: &u64) -> Result<Option<B
             id: group_id,
             group_name: command.group_name,
             visible: command.visible,
-            open: command.open
+            open: command.open,
+            users: vec![USERS.get(user_id).unwrap().value().username().clone()] // TODO replace unwrap
         }
     )))
 }
 
+pub fn handle_invite_to_group(packet: Packet, user_id: &u64) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
+    let command = try_get_invite_to_group(packet.payload())?;
+
+    // TODO add way to send invitations to specific users
+    for id in command.invited_users {
+        todo!()
+    }
+
+    panic!()
+}

@@ -1,12 +1,9 @@
 // all group specific logic
 
 use std::{collections::HashSet};
-use anyhow::anyhow;
 use compact_str::CompactString;
-use quinn::{Connection, Incoming, RecvStream};
 
-use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::online_users::UserInfo};
-use crate::{GROUPS, ONLINE_USERS, OPEN_GROUPS, OPEN_USERS, USERS, VISIBLE_GROUPS, network::packet_handling::handle_packet};
+use crate::{GROUPS, OPEN_GROUPS, VISIBLE_GROUPS};
 
 #[derive(Debug, Clone)]
 pub struct Group {

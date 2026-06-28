@@ -1,12 +1,10 @@
 // all networking/connection logic
 
-use std::{collections::HashSet};
 use anyhow::anyhow;
-use compact_str::CompactString;
 use quinn::{Connection, Incoming, RecvStream};
 
 use reverb_core::{failure::failure::{Failure, FailureType}, network::*};
-use crate::{GROUPS, ONLINE_USERS, OPEN_GROUPS, OPEN_USERS, USERS, VISIBLE_GROUPS, network::{packet_handling::handle_packet, user::{User, register_new_user, remove_user}}};
+use crate::network::{packet_handling::handle_packet, user::{register_new_user, remove_user}};
 
 pub async fn handle_connection(conn: Incoming) -> Result<(), Failure> {
     let conn_bi = conn.await

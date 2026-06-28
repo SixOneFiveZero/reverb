@@ -1,12 +1,10 @@
 // all user specific logic not specific to networking
 
-use std::{collections::HashSet, sync::atomic::Ordering};
-use anyhow::anyhow;
+use std::sync::atomic::Ordering;
 use compact_str::{CompactString, ToCompactString};
-use quinn::{Connection, Incoming, RecvStream};
 
-use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::online_users::UserInfo};
-use crate::{GROUPS, NEXT_USER_ID, ONLINE_USERS, OPEN_GROUPS, OPEN_USERS, USERS, VISIBLE_GROUPS, network::{group::remove_group, packet_handling::handle_packet}};
+use reverb_core::{network::*, network_command::online_users::UserInfo};
+use crate::{GROUPS, NEXT_USER_ID, ONLINE_USERS, OPEN_USERS, USERS, network::group::remove_group};
 
 #[derive(Debug, Clone)]
 pub struct User {
@@ -47,7 +45,7 @@ pub fn remove_user(user_id: &u64) {
         let mut group_ref = GROUPS.get_mut(&group_id).unwrap();
         let group = group_ref.value_mut();
         group.users.remove(user_id);
-        if group.users.len() == 0 {
+        if group.users.is_empty() {
             remove_group(&group_id);
         }
     }

@@ -12,7 +12,8 @@ pub struct GroupInfo {
     pub id: u32,
     pub group_name: CompactString,
     pub visible: bool,
-    pub open: bool
+    pub open: bool,
+    pub users: Vec<CompactString>,
 }
 
 impl NetworkCommand for GroupInfo {
