@@ -22,14 +22,14 @@ impl NetworkCommand for FetchResponse {
     fn serialize(&self) -> Result<Vec<u8>, Failure> {
         let mut buffer = [0u8; 512];
         let group_data = to_slice(&self, &mut buffer)
-            .map_err(|e| Failure::from((anyhow!("failed to serialize GroupInfo: {e}"), FailureType::Warning)))?;
+            .map_err(|e| Failure::from((anyhow!("failed to serialize FetchResponse: {e}"), FailureType::Warning)))?;
 
         let data = group_data.to_vec();
         Ok(data)
     }
     fn parse(data: Vec<u8>) -> Result<Self, Failure> where Self: Sized {
         let group_info: Self = from_bytes(&data)
-            .map_err(|e| Failure::from((anyhow!("failed to serialize GroupInfo: {e}"), FailureType::Warning)))?; 
+            .map_err(|e| Failure::from((anyhow!("failed to deserialize FetchResponse: {e}"), FailureType::Warning)))?; 
         Ok(group_info)
     }
     fn query_or_notify(&self) -> QueryOrNotify {

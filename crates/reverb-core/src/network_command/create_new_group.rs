@@ -31,7 +31,7 @@ impl NetworkCommand for CreateNewGroup {
     }
     fn parse(data: Vec<u8>) -> Result<Self, Failure> where Self: Sized {
         let group_info: Self = from_bytes(&data)
-            .map_err(|e| Failure::from((anyhow!("failed to serialize CreateNewGroup: {e}"), FailureType::Warning)))?;
+            .map_err(|e| Failure::from((anyhow!("failed to deserialize CreateNewGroup: {e}"), FailureType::Warning)))?;
 
         Ok(group_info)
     }
