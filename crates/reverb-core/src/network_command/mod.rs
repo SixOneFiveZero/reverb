@@ -14,3 +14,4 @@ pub mod group_info;
 pub mod join_group;
 pub mod failure;
 pub mod get_visible_groups;
+pub mod visible_groups;

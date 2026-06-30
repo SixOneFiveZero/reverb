@@ -2,12 +2,12 @@
 
 use std::{collections::{HashMap, HashSet}, sync::atomic::Ordering};
 
-use crate::{GROUPS, NEXT_GROUP_ID, ONLINE_USERS, OPEN_USERS, network::group::{Group, add_group}};
+use crate::{GROUPS, NEXT_GROUP_ID, ONLINE_USERS, OPEN_USERS, VISIBLE_GROUPS, network::group::{Group, add_group}};
 
 use anyhow::anyhow;
 
 use compact_str::ToCompactString;
-use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{create_new_group::CreateNewGroup, failure::NetworkFailure, group_info::GroupInfo, helpers::NetworkCommand, join_group::JoinGroup, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus}};
+use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{create_new_group::CreateNewGroup, failure::NetworkFailure, group_info::GroupInfo, helpers::NetworkCommand, join_group::JoinGroup, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus, visible_groups::VisibleGroups}};
 use crate::USERS;
 
 // helpers
@@ -48,12 +48,24 @@ pub fn handle_get_online_users(_packet: Packet) -> Result<Option<Box<dyn Network
         .filter_map(|id_ref| {
             let id = *id_ref.key();
             USERS.get(&id).map(|user_ref| {
-                (user_ref.value().username().to_compact_string(), user_ref.value().user_info())
+                (user_ref.username().to_compact_string(), user_ref.value().user_info())
             })
         })
         .collect();
     
     Ok(Some(Box::new(OnlineUsers { users: online_users })))
+}
+pub fn handle_get_visible_groups(_packet: Packet) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
+    let visible_groups = VISIBLE_GROUPS.iter()
+        .filter_map(|id_ref| {
+            let id = *id_ref.key();
+            GROUPS.get(&id).map(|group_ref| {
+                (group_ref.group_name.clone(), group_ref.get_info())
+            })
+        })
+        .collect();
+    
+    Ok(Some(Box::new(VisibleGroups { groups: visible_groups })))
 }
 
 pub fn handle_set_echo_availability(packet: Packet, user_id: &u64) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
