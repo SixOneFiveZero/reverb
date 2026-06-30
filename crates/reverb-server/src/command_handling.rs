@@ -1,13 +1,13 @@
 // cast boxed NetworkCommand into a specific network command, then handle that command
 
-use std::{collections::{HashMap, HashSet}, sync::atomic::Ordering};
+use std::{collections::HashMap, sync::atomic::Ordering};
 
-use crate::{GROUPS, NEXT_GROUP_ID, ONLINE_USERS, OPEN_USERS, VISIBLE_GROUPS, network::group::{Group, add_group}};
+use crate::{GROUPS, NEXT_GROUP_ID, ONLINE_USERS, OPEN_USERS, VISIBLE_GROUPS, group::{Group, add_group}};
 
 use anyhow::anyhow;
 
 use compact_str::ToCompactString;
-use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{create_new_group::CreateNewGroup, failure::NetworkFailure, group_info::GroupInfo, helpers::NetworkCommand, join_group::JoinGroup, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus, visible_groups::VisibleGroups}};
+use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{create_new_group::CreateNewGroup, failure::NetworkFailure, helpers::NetworkCommand, join_group::JoinGroup, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus, visible_groups::VisibleGroups}};
 use crate::USERS;
 
 // helpers

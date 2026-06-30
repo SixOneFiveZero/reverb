@@ -1,4 +1,4 @@
-use std::{any::Any, collections::HashMap};
+use std::any::Any;
 
 use postcard::{from_bytes, to_slice};
 use serde::{Deserialize, Serialize};
@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::{failure::failure::{Failure, FailureType}, network_command::{ID::NetworkCommandID, helpers::{NetworkCommand, QueryOrNotify}}};
 use anyhow::anyhow;
 
+// TODO better error handling
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NetworkFailure {
     JoinGroup(String)

@@ -1,10 +1,10 @@
 // all user specific logic not specific to networking
 
 use std::sync::atomic::Ordering;
-use compact_str::{CompactString, ToCompactString};
+use compact_str::CompactString;
 
 use reverb_core::{network::*, network_command::online_users::UserInfo};
-use crate::{GROUPS, NEXT_USER_ID, ONLINE_USERS, OPEN_USERS, USERS, network::group::remove_group};
+use crate::{GROUPS, NEXT_USER_ID, ONLINE_USERS, OPEN_USERS, USERS, group::remove_group};
 
 #[derive(Debug, Clone)]
 pub struct User {
@@ -39,8 +39,8 @@ pub fn add_user(id: u64, user: User) -> u64 {
     id
 }
 pub fn remove_user(user_id: &u64) {
-    if let Some((_, user)) = USERS.remove(user_id) {
-        if let Some((group_id, _)) = user.group_info {
+    if let Some((_, user)) = USERS.remove(user_id)
+        && let Some((group_id, _)) = user.group_info {
             let mut group_ref = GROUPS.get_mut(&group_id).unwrap();
             let group = group_ref.value_mut();
             group.users.remove(user_id);
@@ -48,7 +48,6 @@ pub fn remove_user(user_id: &u64) {
                 remove_group(&group_id);
             }
         }
-    }
     ONLINE_USERS.remove(user_id);
     OPEN_USERS.remove(user_id);
 }

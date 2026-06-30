@@ -1,6 +1,6 @@
 use std::{any::Any, collections::HashMap};
 
-use crate::{failure::failure::{Failure, FailureType}, network_command::{ID::NetworkCommandID, helpers::{NetworkCommand, QueryOrNotify}, online_users}};
+use crate::{failure::failure::{Failure, FailureType}, network_command::{ID::NetworkCommandID, helpers::{NetworkCommand, QueryOrNotify}}};
 use anyhow::anyhow;
 use compact_str::CompactString;
 use postcard::{from_bytes, to_slice};

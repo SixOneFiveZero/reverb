@@ -4,7 +4,8 @@ use anyhow::anyhow;
 use quinn::{Connection, Incoming, RecvStream};
 
 use reverb_core::{failure::failure::{Failure, FailureType}, network::*};
-use crate::network::{packet_handling::handle_packet, user::{register_new_user, remove_user}};
+use crate::network::{packet_handling::handle_packet};
+use crate::user::{register_new_user, remove_user};
 
 pub async fn handle_connection(conn: Incoming) -> Result<(), Failure> {
     let conn_bi = conn.await

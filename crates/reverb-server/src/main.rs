@@ -3,11 +3,13 @@ use dashmap::{DashMap, DashSet};
 use quinn::Endpoint;
 
 use reverb_core::failure::failure::Failure;
-use crate::network::{connection, group::Group, user::User};
+use crate::{group::Group, network::connection, user::User};
 
 mod network;
 mod server_startup;
 mod command_handling;
+mod user;
+mod group;
 
 
 // The address and port the server will listen on
