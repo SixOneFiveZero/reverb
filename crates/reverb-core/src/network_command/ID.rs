@@ -1,4 +1,4 @@
-use crate::network_command::{create_new_group::CreateNewGroup, default_command::DefaultCommand, echo::Echo, failure::NetworkFailure, get_online_users::GetOnlineUsers, get_visible_groups::GetVisibleGroups, group_info::GroupInfo, join_group::JoinGroup, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus, skip::Skip, user_data::UserData, visible_groups::VisibleGroups};
+use crate::network_command::{create_new_group::CreateNewGroup, default_command::DefaultCommand, echo::Echo, failure::NetworkFailure, fetch::Fetch, fetch_response::FetchResponse, get_online_users::GetOnlineUsers, get_visible_groups::GetVisibleGroups, group_info::GroupInfo, join_group::JoinGroup, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus, skip::Skip, user_data::UserData, visible_groups::VisibleGroups};
 
 pub trait NetworkCommandID {
     const ID: u8;
@@ -45,4 +45,10 @@ impl NetworkCommandID for GetVisibleGroups {
 }
 impl NetworkCommandID for VisibleGroups {
     const ID: u8 = 13;
+}
+impl NetworkCommandID for Fetch {
+    const ID: u8 = 14;
+}
+impl NetworkCommandID for FetchResponse {
+    const ID: u8 = 15;
 }

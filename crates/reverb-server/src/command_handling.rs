@@ -2,13 +2,12 @@
 
 use std::{collections::HashMap, sync::atomic::Ordering};
 
-use crate::{GROUPS, NEXT_GROUP_ID, ONLINE_USERS, OPEN_USERS, VISIBLE_GROUPS, group::{Group, add_group}};
+use crate::{GROUPS, NEXT_GROUP_ID, ONLINE_USERS, OPEN_GROUPS, OPEN_USERS, USERS, VISIBLE_GROUPS, group::{Group, add_group}};
 
 use anyhow::anyhow;
 
 use compact_str::ToCompactString;
-use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{create_new_group::CreateNewGroup, failure::NetworkFailure, helpers::NetworkCommand, join_group::JoinGroup, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus, visible_groups::VisibleGroups}};
-use crate::USERS;
+use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{create_new_group::CreateNewGroup, failure::NetworkFailure, fetch::{Fetch, GroupFilter, UserFilter}, fetch_response::FetchResponse, helpers::NetworkCommand, join_group::JoinGroup, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus, visible_groups::VisibleGroups}};
 
 // helpers
 
@@ -40,8 +39,63 @@ fn try_get_join_group(item: &Box<dyn NetworkCommand + Send + Sync>) -> Result<Jo
         Err(Failure::from((anyhow!("failed to read JoinGroup from Box"), FailureType::Warning)))
     }
 }
+fn try_get_fetch(item: &Box<dyn NetworkCommand + Send + Sync>) -> Result<Fetch, Failure> {
+    if let Some(command) = item.as_any().downcast_ref::<Fetch>() {
+        Ok(command.clone())
+    } else {
+        Err(Failure::from((anyhow!("failed to read Fetch from Box"), FailureType::Warning)))
+    }
+}
 
 // handlers
+
+pub fn handle_fetch(packet: Packet) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
+    let command = try_get_fetch(packet.payload())?;
+
+    match command {
+        Fetch::Users(filter) => handle_fetch_users(filter),
+        Fetch::Groups(filter) => handle_fetch_groups(filter),
+    }
+}
+pub fn handle_fetch_users(filter: UserFilter) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
+    let users = ONLINE_USERS.iter()
+        .filter_map(|id_ref| {
+            let id = *id_ref.key();
+
+            if filter.open_to_echo && !OPEN_USERS.contains(&id) {
+                return None;
+            }
+            
+            USERS.get(&id).map(|user_ref| {
+                (user_ref.username().to_compact_string(), user_ref.value().user_info())
+            })
+        })
+        .collect();
+    
+    Ok(Some(Box::new(FetchResponse::Users(
+        users
+    ))))
+
+}
+pub fn handle_fetch_groups(filter: GroupFilter) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
+    let groups = VISIBLE_GROUPS.iter()
+        .filter_map(|id_ref| {
+            let id = *id_ref.key();
+            
+            if filter.open && !OPEN_GROUPS.contains(&id) {
+                return None;
+            }
+
+            GROUPS.get(&id).map(|group_ref| {
+                (group_ref.group_name.clone(), group_ref.get_info())
+            })
+        })
+        .collect();
+    
+    Ok(Some(Box::new(FetchResponse::Groups(
+        groups
+    ))))
+}
 
 pub fn handle_get_online_users(_packet: Packet) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
     let online_users = ONLINE_USERS.iter()
