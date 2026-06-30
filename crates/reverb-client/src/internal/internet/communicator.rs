@@ -6,15 +6,15 @@ use rustls::pki_types::CertificateDer;
 
 use anyhow::{Result, anyhow};
 
-use crate::{CONFIG, Command, MAIN_SENDER, config::internet::ServerConfig};
+use crate::{Command, MAIN_SENDER, config::{config::config, internet::server_config}};
 use reverb_core::{network_command::helpers::QueryOrNotify, failure::failure::{Failure, FailureType}, network::Packet};
 
 
-pub(super) fn start_communicator_thread(server_config: ServerConfig) {
+pub(super) fn start_communicator_thread() {
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
         match tokio::runtime::Runtime::new().unwrap().block_on(async{
-            let conn = connect_to(server_config).await?;
+            let conn = connect_to_server().await?;
             MAIN_SENDER.get().unwrap().clone().send(Command::ServerUpdateStatus(crate::internal::internet::connection::ConnectionStatus::Connected(tx))).unwrap_or_else(|e| eprintln!("Failed to send server update status command: {}", e));
             for packet in rx {
                 // Handle incoming messages
@@ -34,17 +34,12 @@ pub(super) fn start_communicator_thread(server_config: ServerConfig) {
     });
 }
 
-async fn connect_to(server_config: ServerConfig) -> Result<Connection, Failure> {
-    println!("Starting connection process to server: {}", server_config.server_address);
+async fn connect_to_server() -> Result<Connection, Failure> {
+    println!("Starting connection process to server: {}", server_config()?.server_address);
     // Locate the directory where the server's certificate is stored (shared location)
-    let data_folder = match CONFIG.get() {
-        Some(cfg) => cfg.data_folder.clone(),
-        None => {
-            return Err(Failure::from((anyhow!("Config folder not found"), FailureType::Fatal)));
-        }
-    };
-    let path = std::path::Path::new(&data_folder); // TODO add command to add it to the config
-    let cert_path = path.join(&server_config.server_cert_path);
+    let data_folder = &config()?.data_folder;
+    let path = std::path::Path::new(data_folder); // TODO add command to add it to the config
+    let cert_path = path.join(&server_config()?.server_cert_path);
 
 
     println!("Loading server certificate from: {:?}", cert_path);
@@ -90,28 +85,27 @@ async fn connect_to(server_config: ServerConfig) -> Result<Connection, Failure> 
     endpoint.set_default_client_config(client_config);
 
     // get the server name for TLS validation from the server config
-    let host = server_config.server_name.as_str();
+    let host = server_config()?.server_name.clone();
 
     // Parse the server address string into a SocketAddr
-    let remote = server_config.server_address.parse::<SocketAddr>()
+    let remote = server_config()?.server_address.parse::<SocketAddr>()
         .map_err(|e| Failure::from((e.into(), FailureType::Warning)))?;
 
     // Initiate a QUIC connection to the server with the given address and host
-    let connecting = endpoint.connect(remote, host)
+    let connecting = endpoint.connect(remote, host.as_str())
         .map_err(|e| Failure::from((e.into(), FailureType::Warning)))?;
     let conn = connecting.await
         .map_err(|e| Failure::from((e.into(), FailureType::Warning)))?;
-    println!("Successfully connected to server at {}", server_config.server_address);
+    println!("Successfully connected to server at {}", server_config()?.server_address);
 
 
     // send notification with complete header for server to identify us
     println!("sending information about self to server");
-    let config = CONFIG.get().ok_or(Failure::from((anyhow!("Config not created"), FailureType::Fatal)))?;
     let packet = Packet::new(
-        CONFIG.get().ok_or(Failure::from((anyhow!("Config not created"), FailureType::Fatal)))?.username.clone().as_str(),
+        config()?.username.clone().as_str(),
         0,
         Box::new(reverb_core::network_command::user_data::UserData {
-            echo_avaliable: ServerConfig::load()?.echo_avaliable
+            echo_avaliable: server_config()?.echo_avaliable
         })
     )?;
     notify(conn.clone(), packet).await?;

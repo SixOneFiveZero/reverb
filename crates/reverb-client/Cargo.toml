@@ -22,3 +22,4 @@ rand = "0.10.0"
 reverb-core = { path = "../reverb-core" }
 lru = "0.16.3"
 compact_str = { version = "0.9.1", features = ["serde"]}
+arc-swap = "1.9.1"

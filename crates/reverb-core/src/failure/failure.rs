@@ -24,9 +24,14 @@ impl Failure {
 
 impl std::fmt::Display for Failure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Failure::Fatal(e, msg) => format!("Fatal error: {}: {}", e, msg),
-            Failure::Warning(e, msg) => format!("Warning: {}: {}", e, msg),
+        let (e, msg) = match self {
+            Failure::Fatal(e, msg) => (e, msg),
+            Failure::Warning(e, msg) => (e, msg),
+        };
+        write!(f, "{}", if msg.is_empty() {
+            e.to_string()
+        } else {
+            format!("{}: {}", msg, e)
         })
     }
 }

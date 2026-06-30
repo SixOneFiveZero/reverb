@@ -325,15 +325,16 @@ fn create_song_list(size: (u16, u16), songs: Vec<song::Song>, text: &mut Vec<Str
                 push_width_aware(&mut song_text, name, "", "", text, size.0);
 
                 // add artists
-                let artists = &song.info.artists;
-                push_width_aware(
-                    &mut song_text,
-                    artists[0].as_str(),
-                    "  ",
-                    " - ",
-                    text,
-                    size.0,
-                );
+                for artist in song.info.artists.iter() {
+                    push_width_aware(
+                        &mut song_text,
+                        artist,
+                        "  ",
+                        " - ",
+                        text,
+                        size.0,
+                    );
+                }
 
                 // add type
                 let external_type = format!("({})", song.song_type.as_type());
@@ -454,12 +455,22 @@ pub fn show_text_in_right_third(text: &str) {
                 break;
             }
         }
+        if current_line >= height - 20 {
+            break;
+        }
     }
     for i in current_line..(height - 19) {
         let _ = queue!(
             stdout,
             cursor::MoveTo(right_start, i),
             Print(" ".repeat(right_width as usize)),
+        );
+    }
+    if current_line == height - 20 {
+        let _ = queue!(
+            stdout,
+            cursor::MoveTo(right_start, current_line as u16),
+            Print("...".to_string() + &" ".repeat((right_width - 3) as usize)),
         );
     }
     let _ = queue!(

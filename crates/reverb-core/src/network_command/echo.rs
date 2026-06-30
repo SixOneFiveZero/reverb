@@ -31,11 +31,8 @@ impl NetworkCommand for Echo {
         Echo::ID
     }
     fn serialize(&self) -> Result<Vec<u8>, Failure> {
-        let mut data = match self.echo_type {
-            EchoType::Group => vec![EchoType::Group as u8],
-            EchoType::User => vec![EchoType::User as u8],
-            _ => {return Err(Failure::from((anyhow!("failed to serialize Echo: EchoType not found"), FailureType::Warning)))}
-        };
+        let mut data = vec![self.echo_type.clone() as u8];
+
         data.extend_from_slice(self.echo_target.as_bytes());
         Ok(data)
     }

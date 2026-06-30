@@ -1,8 +1,7 @@
 use std::sync::mpsc;
 use anyhow::{Result, anyhow};
-use quinn::Side::Server;
 
-use crate::{CONFIG, DATA_FOLDER, config::internet::{self, SERVER_CONFIG_PATH, ServerConfig}, internal::internet::communicator};
+use crate::{config::{config::config, internet::server_config}, internal::internet::communicator};
 use reverb_core::{network_command::helpers::NetworkCommand, failure::failure::{Failure, FailureType}, network::*};
 
 
@@ -39,9 +38,9 @@ impl InternetClient {
             ConnectionStatus::NotConnected => {
                 self.connection_status = ConnectionStatus::Connecting;
 
-                let server_config = crate::config::internet::ServerConfig::load()?;
+                let server_config = server_config()?;
                 println!("Attempting to connect to server at {} with name {} and certificate path {}", server_config.server_address, server_config.server_name, server_config.server_cert_path);
-                communicator::start_communicator_thread(server_config);
+                communicator::start_communicator_thread();
                 Ok(())
             },
         }
@@ -50,7 +49,7 @@ impl InternetClient {
     pub fn send_message(&mut self, command: Box<dyn NetworkCommand + Send + Sync>) -> Result<(), Failure> {
         println!("Attempting to send message to server: ");
         let packet = Packet::new(
-            CONFIG.get().ok_or(Failure::from((anyhow!("Config not created"), FailureType::Fatal)))?.username.clone().as_str(),
+            config()?.username.as_str(),
             self.group_id,
             command
         )?;

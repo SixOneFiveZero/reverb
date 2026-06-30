@@ -1,4 +1,5 @@
 pub mod helpers;
+#[allow(non_snake_case)]
 pub mod ID;
 pub mod default_command;
 pub mod echo;

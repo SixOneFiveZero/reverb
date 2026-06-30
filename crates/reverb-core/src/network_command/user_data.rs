@@ -1,3 +1,5 @@
+// data sent from client in initial handshake
+
 use std::any::Any;
 
 use crate::{failure::failure::{Failure, FailureType}, network_command::{ID::NetworkCommandID, helpers::{NetworkCommand, QueryOrNotify}}};

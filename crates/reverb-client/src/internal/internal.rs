@@ -1,7 +1,6 @@
 use reverb_core::network_command::get_online_users::GetOnlineUsers;
 use reverb_core::network_command::set_echo_availability::SetEchoAvailability;
-use crate::{
-    CONFIG, Command, MAIN_SENDER, config::internet::ServerConfig, external::external::{self, External, ExternalRun, ExternalType}, internal::{
+use crate::{Command, MAIN_SENDER, config::internet::{server_config, update_server_config}, external::external::{self, External, ExternalRun, ExternalType}, internal::{
         internet, playlist::Playlist, queue::Queue, song::Song
     }
 };
@@ -11,7 +10,6 @@ use std::{num::NonZeroUsize, sync::mpsc};
 use lru::LruCache;
 use std::sync::mpsc::Sender;
 use std::{thread, time::Duration};
-use anyhow::anyhow;
 
 pub struct Internal {
     current_external: ExternalRun,
@@ -19,7 +17,6 @@ pub struct Internal {
     autoskip_kill_sender: Sender<()>,
     server_connection: internet::connection::InternetClient,
     playlists: LruCache<String, Playlist>,
-    ui_update_sender: Sender<()>,
 }
 
 // command handling
@@ -104,16 +101,13 @@ impl Internal {
 
 // general functions for internal state management
 impl Internal {
-    pub fn new(
-        queue: Queue,
-    ) -> Result<Self, Failure> {
+    pub fn new(queue: Queue) -> Result<Self, Failure> {
         Ok(Internal {
             current_external: external::get_new_external_run_from_song(&queue.current_song()?)?,
             queue,
             autoskip_kill_sender: mpsc::channel().0,
             server_connection: internet::connection::InternetClient::new(),
             playlists: LruCache::new(NonZeroUsize::new(10).unwrap()),
-            ui_update_sender: mpsc::channel().0,
         })
     }
 
@@ -336,7 +330,7 @@ impl Internal {
     }
 }
 
-// server connection management
+// server management
 impl Internal {
     pub fn connect_to_server(&mut self) -> Result<(), Failure> {
         self.server_connection.connect()
@@ -350,19 +344,18 @@ impl Internal {
         self.server_connection.update_connection(status);
     }
 
+    /// add new server, defaults to echo unavailable, to set echo availability use server_set_echo_availability
     pub fn server_add(&mut self, name: String, address: String, certificate_path: String) -> Result<(), Failure> {
-        let echo_avaliable = match ServerConfig::load() {
+        let echo_avaliable = match server_config() {
             Ok(config) => config.echo_avaliable,
             Err(_) => false,
         };
-        crate::config::internet::ServerConfig::new(&address, &name, &certificate_path, echo_avaliable)?;
+        update_server_config(Some(&address), Some(&name), Some(&certificate_path), Some(echo_avaliable))?;
         Ok(())
     }
 
     pub fn server_set_echo_availability(&mut self, availability: bool) -> Result<(), Failure> {
-        let mut  server_config = crate::config::internet::ServerConfig::load()?;
-        server_config.echo_avaliable = availability;
-        server_config.save()?;
+        update_server_config(None, None, None, Some(availability))?;
         self.server_connection.send_message(Box::new(SetEchoAvailability(availability)))
     }
 }

@@ -1,8 +1,8 @@
 use std::path::Path;
-use anyhow::anyhow;
 
-use crate::{DATA_FOLDER, internal::playlist::Playlist};
 use reverb_core::failure::failure::{Failure, FailureType};
+
+use crate::{config::config::config, internal::playlist::Playlist};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub(super) struct Startup{
@@ -11,18 +11,12 @@ pub(super) struct Startup{
 
 impl Startup {
     pub(super) fn save(&self) -> Result<(), Failure> {
-        match std::fs::create_dir_all(DATA_FOLDER.get().ok_or(Failure::from((
-            anyhow!("DATA_FOLDER not set"),
-            FailureType::Fatal,
-        )))?) {
+        match std::fs::create_dir_all(config()?.data_folder.clone()) {
             Err(e) => return Err(Failure::from((e.into(), FailureType::Fatal))),
             Ok(_) => {}
         }
         match std::fs::write(
-            Path::new(DATA_FOLDER.get().ok_or(Failure::from((
-                anyhow!("DATA_FOLDER not set"),
-                FailureType::Fatal,
-            )))?).join("cli_startup.toml"),
+            Path::new(&config()?.data_folder.clone()).join("cli_startup.toml"),
             toml::to_string(self).map_err(|e| Failure::from((e.into(), FailureType::Fatal)))?,
         ) {
             Err(e) => Err(Failure::from((e.into(), FailureType::Fatal))),
@@ -31,8 +25,7 @@ impl Startup {
     }
 
     pub(super) fn load() -> Result<Startup, Failure> {
-        let path = Path::new(DATA_FOLDER.get().ok_or(Failure::from((anyhow!("DATA_FOLDER not set"), FailureType::Fatal,
-        )))?).join("cli_startup.toml");
+        let path = Path::new(&config()?.data_folder.clone()).join("cli_startup.toml");
         let startup = 
         if path.exists() {
             let content = std::fs::read_to_string(&path).map_err(|e| Failure::from((e.into(), FailureType::Fatal)))?;

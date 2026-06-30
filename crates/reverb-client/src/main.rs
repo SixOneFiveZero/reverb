@@ -9,7 +9,7 @@ use ui::cli::cli;
 use reverb_core::failure::failure::{Failure, FailureType};
 
 use crate::{
-    config::{config::Config, startup_shutdown::{shutdown, startup}}, 
+    config::{startup_shutdown::{shutdown, startup}}, 
     external::external::ExternalType, 
     ui::cli::cli::print_failure,
 };
@@ -19,11 +19,6 @@ mod external;
 mod internal;
 mod ui;
 
-pub static CONFIG_FOLDER: &str = "configs/";
-pub static CONFIG: OnceCell<Config> = OnceCell::new();
-
-pub static DATA_FOLDER: OnceCell<String> = OnceCell::new();
-pub static LOCAL_SONG_FOLDER_PATH: OnceCell<String> = OnceCell::new();
 
 pub static MAIN_SENDER: OnceCell<mpsc::Sender<Command>> = OnceCell::new();
 
@@ -63,8 +58,20 @@ fn main() {
     });
 
     for command in receive {
-        internal.handle_command(command.clone());// TODO , clone is maybe to expensive?
-        cli::handle_command(command.clone()); //TODO handle the errors aswell
+        match internal.handle_command(command.clone()) {
+            Ok(_) => {},
+            Err(failure) => match failure.failure_type() {
+                FailureType::Fatal => {print_failure(failure); break;},
+                FailureType::Warning => print_failure(failure),
+            },
+        };
+        match cli::handle_command(command.clone()) {
+            Ok(_) => {},
+            Err(failure) => match failure.failure_type() {
+                FailureType::Fatal => {print_failure(failure); break;},
+                FailureType::Warning => print_failure(failure),
+            },
+        };
         match match command {
             Command::Shutdown => break,
             Command::Failure(failure) => Err(failure),

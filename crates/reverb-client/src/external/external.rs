@@ -227,7 +227,7 @@ macro_rules! make_external_types {
             // Use ExternalType::new_external_song instead.
             // TODO: this will be chnaged later to remove confusion
             fn new(_info: &str) -> Result<Self, Failure> where Self: Sized {
-                Err(Failure::from((anyhow!("Use ExternalType::new_external_song instead"), FailureType::Warning)))
+                Err(Failure::from((anyhow!("Use ExternalType::new_external_song instead"), FailureType::Fatal)))
             }
             fn info(&self) -> Result<crate::internal::song::SongInfo, Failure> {
                 match self {
