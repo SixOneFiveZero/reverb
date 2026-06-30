@@ -14,8 +14,8 @@ pub struct OnlineUsers {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserInfo {
     pub user_id: u64,
-    pub group_id: u32,
     pub open_to_echo: bool,
+    pub group_info: Option<(u32, CompactString)> // id and name
 }
 
 impl NetworkCommand for OnlineUsers {

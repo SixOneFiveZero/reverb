@@ -68,7 +68,7 @@ impl Packet {
             return Err(Failure::from((anyhow!("Data too short to be a valid packet"), FailureType::Warning)));
         }
         let version = [_data[0], _data[1], _data[2]];
-        let username = String::from_utf8_lossy(&_data[3..35]).trim_matches(char::from(0)).to_compact_string();
+        let username = CompactString::from_utf8_lossy(&_data[3..35]).trim_matches(char::from(0)).into();
         println!("{username}");
         let group_id_bytes: [u8; 4] = _data[35..39].try_into().map_err(|e| Failure::from((anyhow!("{e}"), FailureType::Warning)))?;
         let group_id = u32::from_le_bytes(group_id_bytes);

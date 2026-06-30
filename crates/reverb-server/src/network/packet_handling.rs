@@ -3,7 +3,7 @@
 use anyhow::anyhow;
 
 use compact_str::ToCompactString;
-use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{ID::NetworkCommandID, create_new_group::CreateNewGroup, default_command::DefaultCommand, get_online_users::GetOnlineUsers, helpers::NetworkCommand, invite_to_group::InviteToGroup, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus}};
+use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{ID::NetworkCommandID, create_new_group::CreateNewGroup, default_command::DefaultCommand, get_online_users::GetOnlineUsers, helpers::NetworkCommand, join_group::JoinGroup, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus}};
 use crate::{SERVER_GROUP, SERVER_NAME, command_handling};
 
 fn create_response_packet(command: Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure>) -> Result<Option<Packet>, Failure> {
@@ -39,8 +39,8 @@ pub fn handle_packet(packet: Packet, user_id: &u64) -> Result<Option<Packet>, Fa
             let outgoing = command_handling::handle_create_new_group(packet, user_id);
             create_response_packet(outgoing)
         },
-        InviteToGroup::ID => {
-            let outgoing = command_handling::handle_invite_to_group(packet, user_id);
+        JoinGroup::ID => {
+            let outgoing = command_handling::handle_join_group(packet, user_id);
             create_response_packet(outgoing)
         }
         _ => {Err(Failure::from((anyhow!("packet handling error: command not found"), FailureType::Warning)))}
