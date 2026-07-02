@@ -2,8 +2,14 @@ use std::any::Any;
 
 use crate::network_command::ID::NetworkCommandID;
 use crate::failure::failure::{Failure, FailureType};
+use crate::network_command::create_new_group::CreateNewGroup;
+use crate::network_command::failure::NetworkFailure;
+use crate::network_command::fetch_groups::FetchGroups;
+use crate::network_command::fetched_groups::FetchedGroups;
+use crate::network_command::group_info::GroupInfo;
+use crate::network_command::join_group::JoinGroup;
 use crate::network_command::set_online_status::SetOnlineStatus;
-use crate::network_command::{default_command::DefaultCommand, echo::Echo, get_online_users::GetOnlineUsers, online_users::OnlineUsers, set_echo_availability::SetEchoAvailability, skip::Skip, user_data::UserData};
+use crate::network_command::{default_command::DefaultCommand, echo::Echo, fetch_users::FetchUsers, fetched_users::FetchedUsers, set_echo_availability::SetEchoAvailability, skip::Skip, user_data::UserData};
 use anyhow::anyhow;
 
 pub enum QueryOrNotify {
@@ -20,11 +26,17 @@ pub fn parse_command(data: Vec<u8>) -> Result<Box<dyn NetworkCommand + Send + Sy
         DefaultCommand::ID => Ok(Box::new(DefaultCommand::parse(data)?)),
         Skip::ID => Ok(Box::new(Skip::parse(data)?)),
         Echo::ID => Ok(Box::new(Echo::parse(data)?)),
-        OnlineUsers::ID => Ok(Box::new(OnlineUsers::parse(data)?)),
-        GetOnlineUsers::ID => Ok(Box::new(GetOnlineUsers::parse(data)?)),
+        FetchedUsers::ID => Ok(Box::new(FetchedUsers::parse(data)?)),
+        FetchUsers::ID => Ok(Box::new(FetchUsers::parse(data)?)),
         UserData::ID => Ok(Box::new(UserData::parse(data)?)),
         SetEchoAvailability::ID => Ok(Box::new(SetEchoAvailability::parse(data)?)),
         SetOnlineStatus::ID => Ok(Box::new(SetOnlineStatus::parse(data)?)),
+        CreateNewGroup::ID => Ok(Box::new(CreateNewGroup::parse(data)?)),
+        NetworkFailure::ID => Ok(Box::new(NetworkFailure::parse(data)?)),
+        FetchGroups::ID => Ok(Box::new(FetchGroups::parse(data)?)),
+        FetchedGroups::ID => Ok(Box::new(FetchedGroups::parse(data)?)),
+        GroupInfo::ID => Ok(Box::new(GroupInfo::parse(data)?)),
+        JoinGroup::ID => Ok(Box::new(JoinGroup::parse(data)?)),
         _ => Err(Failure::from((anyhow!("invalid command"), FailureType::Warning)))
     }
 }

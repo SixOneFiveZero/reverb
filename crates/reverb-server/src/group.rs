@@ -1,6 +1,6 @@
 // all group specific logic
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use compact_str::CompactString;
 use reverb_core::network_command::group_info::GroupInfo;
@@ -13,7 +13,7 @@ pub struct Group {
     pub id: u32,
     pub visible: bool,
     pub open: bool,
-    pub users: HashMap<u64, CompactString>,
+    pub users: BTreeMap<u64, CompactString>,
     pub host: u64
 }
 
@@ -43,6 +43,7 @@ impl Group {
     pub fn get_info(&self) -> GroupInfo {
         GroupInfo {
             id: self.id,
+            name: self.group_name.clone(),
             visible: self.visible,
             open: self.open,
             users: self.users.clone(),

@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use reverb_core::network_command::ID::NetworkCommandID;
-use reverb_core::network_command::online_users::OnlineUsers;
+use reverb_core::network_command::fetched_users::FetchedUsers;
 use std::sync::{Mutex, Arc};
 use once_cell::sync::Lazy;
 
@@ -173,8 +173,8 @@ pub fn handle_command(command: Command) -> Result<(), Failure> {
                     println!("{:#?}", packet);
                     Ok(())
                 },
-                reverb_core::network_command::online_users::OnlineUsers::ID => {
-                    if let Some(online_users) = packet.payload.as_any().downcast_ref::<OnlineUsers>() {
+                reverb_core::network_command::fetched_users::FetchedUsers::ID => {
+                    if let Some(online_users) = packet.payload.as_any().downcast_ref::<FetchedUsers>() {
                         let mut users = String::new();
                         for user in &online_users.users {
                             users.push_str(user.0.as_str());

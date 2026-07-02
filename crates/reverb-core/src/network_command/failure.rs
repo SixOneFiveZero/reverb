@@ -1,3 +1,6 @@
+// placeholder failure command,
+// TODO: improve this
+
 use std::any::Any;
 
 use postcard::{from_bytes, to_slice};

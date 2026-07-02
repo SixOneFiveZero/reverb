@@ -26,7 +26,7 @@ impl NetworkCommand for UserData {
         Ok(UserData { echo_avaliable })
     }
     fn query_or_notify(&self) -> QueryOrNotify {
-        QueryOrNotify::Query
+        QueryOrNotify::Notify
     }
     fn as_any(&self) -> &dyn Any { self }
 }

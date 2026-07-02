@@ -1,16 +1,18 @@
-use std::{any::Any, collections::HashMap};
+// server responds with this when client sends FetchGroups command
+
+use std::{any::Any, collections::HashSet};
 
 use crate::{failure::failure::{Failure, FailureType}, network_command::{ID::NetworkCommandID, group_info::GroupInfo, helpers::{NetworkCommand, QueryOrNotify}}};
 use anyhow::anyhow;
-use compact_str::CompactString;
 use postcard::{from_bytes, to_slice};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
-pub struct VisibleGroups {
-    pub groups: HashMap<CompactString, GroupInfo>
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FetchedGroups {
+    pub groups: HashSet<GroupInfo>
 }
 
-impl NetworkCommand for VisibleGroups {
+impl NetworkCommand for FetchedGroups {
     fn number(&self) -> u8 {
         GroupInfo::ID
     }
@@ -19,22 +21,22 @@ impl NetworkCommand for VisibleGroups {
 
         let mut buffer = [0u8; 512];
         let group_data = to_slice(&self.groups, &mut buffer)
-            .map_err(|e| Failure::from((anyhow!("failed to serialize VisibleGroups: {e}"), FailureType::Warning)))?;
+            .map_err(|e| Failure::from((anyhow!("failed to serialize FetchedGroups: {e}"), FailureType::Warning)))?;
         data.extend_from_slice(group_data);
 
         Ok(data)
     }
     fn parse(data: Vec<u8>) -> Result<Self, Failure> where Self: Sized {
         if data.len() < 2 {
-            return Err(Failure::from((anyhow!("VisibleGroups Parsing Error: No Visible Groups"), FailureType::Warning)));
+            return Err(Failure::from((anyhow!("FetchedGroups Parsing Error: No Groups Fetched"), FailureType::Warning)));
         }
-        let groups: HashMap<CompactString, GroupInfo> = from_bytes(&data[1..])
+        let groups: HashSet<GroupInfo> = from_bytes(&data[1..])
             .map_err(|e| Failure::from((anyhow!("failed to parse VisibleGroups: {e}"), FailureType::Warning)))?;
 
-        for (group, info) in &groups {
-            println!("{group}, {}", info.id);
+        for group in &groups {
+            println!("{}, {}", group.name, group.id);
         }
-        let visible_groups = VisibleGroups {
+        let visible_groups = FetchedGroups {
             groups
         };
         
@@ -42,7 +44,7 @@ impl NetworkCommand for VisibleGroups {
     }
 
     fn query_or_notify(&self) -> QueryOrNotify {
-        QueryOrNotify::Query
+        QueryOrNotify::Notify
     }
 
     fn as_any(&self) -> &dyn Any { self }

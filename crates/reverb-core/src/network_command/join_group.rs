@@ -1,4 +1,5 @@
-// command to join group with valid id
+// command to join group with valid id, 
+// server responds with GroupInfo if successful or NetworkFailure if not
 
 use std::any::Any;
 
@@ -31,7 +32,7 @@ impl NetworkCommand for JoinGroup {
         Ok(group_info)
     }
     fn query_or_notify(&self) -> QueryOrNotify {
-        QueryOrNotify::Notify
+        QueryOrNotify::Query
     }
     fn as_any(&self) -> &dyn Any { self }
 }

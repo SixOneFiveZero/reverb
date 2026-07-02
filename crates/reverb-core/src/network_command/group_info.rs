@@ -1,4 +1,7 @@
-use std::{any::Any, collections::HashMap};
+// command sent by server with all the information about a group,
+// sent upon group creation, joining a group or as part of FetchedGroups command
+
+use std::{any::Any, collections::{BTreeMap, HashMap}};
 
 use compact_str::CompactString;
 use postcard::{from_bytes, to_slice};
@@ -7,12 +10,13 @@ use serde::{Deserialize, Serialize};
 use crate::{failure::failure::{Failure, FailureType}, network_command::{ID::NetworkCommandID, helpers::{NetworkCommand, QueryOrNotify}}};
 use anyhow::anyhow;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct GroupInfo {
     pub id: u32,
+    pub name: CompactString,
     pub visible: bool,
     pub open: bool,
-    pub users: HashMap<u64, CompactString>,
+    pub users: BTreeMap<u64, CompactString>,
     pub host: u64
 }
 

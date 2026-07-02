@@ -3,7 +3,7 @@
 use std::sync::atomic::Ordering;
 use compact_str::CompactString;
 
-use reverb_core::{network::*, network_command::online_users::UserInfo};
+use reverb_core::{network::*, network_command::fetched_users::UserInfo};
 use crate::{GROUPS, NEXT_USER_ID, ONLINE_USERS, OPEN_USERS, USERS, group::remove_group};
 
 #[derive(Debug, Clone)]
@@ -70,6 +70,7 @@ impl User {
     pub fn user_info(&self) -> UserInfo {
         UserInfo {
             user_id: self.id,
+            username: self.username.clone(),
             open_to_echo: self.open_to_echo,
             group_info: self.group().clone()
         }
