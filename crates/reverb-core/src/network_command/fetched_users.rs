@@ -59,3 +59,16 @@ impl NetworkCommand for FetchedUsers {
     fn as_any(&self) -> &dyn Any { self }
 
 }
+
+impl ToString for UserInfo {
+    fn to_string(&self) -> String {
+        format!("{} ({}) {} open to echo {}", 
+            self.username, self.user_id, 
+            if self.open_to_echo { "is" } else { "isn't" }, 
+            match &self.group_info {
+                Some((id, name)) => format!("in group {} ({})", name, id),
+                None => "and not in a group".to_string()
+            }
+        )
+    }
+}

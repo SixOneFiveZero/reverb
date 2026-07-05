@@ -1,7 +1,7 @@
 // command sent by server with all the information about a group,
 // sent upon group creation, joining a group or as part of FetchedGroups command
 
-use std::{any::Any, collections::{BTreeMap, HashMap}};
+use std::{any::Any, collections::BTreeMap};
 
 use compact_str::CompactString;
 use postcard::{from_bytes, to_slice};
