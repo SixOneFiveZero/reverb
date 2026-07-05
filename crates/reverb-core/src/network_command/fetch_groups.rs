@@ -23,11 +23,14 @@ impl NetworkCommand for FetchGroups {
         Ok(group_data.to_vec())
     }
     fn parse(data: Vec<u8>) -> Result<Self, Failure> where Self: Sized {
-        let group_data = match data[0] {
+        if data.len() != 2 {
+            return Err(Failure::from((anyhow!("Failed to parse FetchGroups: Invalid data length: {}, from data: {:?}", data.len(), data), FailureType::Warning)));
+        }
+        let group_data = match data[1] {
             0 => None,
             1 => Some(false),
             2 => Some(true),
-            _ => { return Err(Failure::from((anyhow!("Failed to parse FetchUsers: Invalid open_to_echo value"), FailureType::Warning))); }
+            _ => { return Err(Failure::from((anyhow!("Failed to parse FetchGroups: Invalid open value: {}, from data: {:?}", data[1], data), FailureType::Warning))); }
         };
 
         Ok(FetchGroups { open: group_data })
