@@ -150,7 +150,8 @@ pub enum Command {
     ServerAdd(String, String, String), // name, address, certificate path
     ServerConnect,
     ServerUpdateStatus(internal::internet::connection::ConnectionStatus),
-    ServerGetOnlineUsers,
+    ServerFetchUsers,
+    ServerFetchGroups,
     ServerResponse(Packet),
     ServerSetEchoAvailability(bool),
     Failure(Failure),

@@ -128,7 +128,7 @@ pub fn run_cli(update_interval: u64) -> Result<(), Failure> {
     .add("playlist copy", vec!["copy", "c"], " <new_name> : Copy the playlist", Some(|args| ui::playlist_copy_to(PLAYLIST.lock().unwrap().as_str(), args)), Args, Some("playlist"))
     .add("playlist clear", vec!["clear", "cl"], " : Clear the playlist", Some(|_| ui::playlist_clear(PLAYLIST.lock().unwrap().as_str())), NoArgs, Some("playlist"))
     // server commands
-    .add("server", vec!["server"], " : Server related commands", None, NotCallable, None)
+    .add("server", vec!["server", "serv"], " : Server related commands", None, NotCallable, None)
     .add("server add", vec!["add"], " <name> <address> <certificate_path> : Add a server configuration", Some(|args| {
         let mut parts = args.splitn(3, ' ');
         match (parts.next(), parts.next(), parts.next()) {
@@ -137,7 +137,9 @@ pub fn run_cli(update_interval: u64) -> Result<(), Failure> {
         }
     }), Args, Some("server"))
     .add("server connect", vec!["connect", "con"], " : Connect to the server", Some(|_| ui::server_connect()), NoArgs, Some("server"))
-    .add("server scan", vec!["scan", "s"], " : Ask server for users open to echo", Some(|_| ui::server_get_online_users()), NoArgs, Some("server"))
+    .add("server fetch", vec!["fetch", "f"], " : fetch information from the server", None, NotCallable, Some("server"))
+    .add("server fetch users", vec!["users", "u"], " : See online users", Some(|_| ui::server_fetch_users()), NoArgs, Some("server fetch"))
+    .add("server fetch groups", vec!["groups", "g"], " : See online groups", Some(|_| ui::server_fetch_groups()), NoArgs, Some("server fetch"))
     .add("server set echo availability", vec!["set-echo", "echo"], " <true/false> : Set whether you are open to echoing with other users", Some(|args| {
         match args.parse::<bool>() {
             Ok(availability) => ui::server_set_echo_availability(availability),
@@ -183,6 +185,14 @@ pub fn handle_command(command: Command) -> Result<(), Failure> {
                         cli_ui::show_text_in_right_third(&format!("Online users:\n{}", users));
                     } else {
                         println!("Failed to parse online users from server response");
+                    }
+                    Ok(())
+                },
+                reverb_core::network_command::fetched_groups::FetchedGroups::ID => {
+                    if let Some(online_groups) = packet.payload.as_any().downcast_ref::<reverb_core::network_command::fetched_groups::FetchedGroups>() {
+                        cli_ui::show_text_in_right_third(&format!("Online groups:\n{}", online_groups.to_string()));
+                    } else {
+                        println!("Failed to parse online groups from server response");
                     }
                     Ok(())
                 },

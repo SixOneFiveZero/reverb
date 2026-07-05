@@ -163,9 +163,14 @@ pub(super) fn server_add(name: String, address: String, certificate_path: String
     .map_err(|e| Failure::from((e.into(), "add_server", FailureType::Fatal)))
 }
 
-pub(super) fn server_get_online_users() -> Result<(), Failure> {
-    MAIN_SENDER.get().unwrap().clone().send(Command::ServerGetOnlineUsers)
+pub(super) fn server_fetch_users() -> Result<(), Failure> {
+    MAIN_SENDER.get().unwrap().clone().send(Command::ServerFetchUsers)
     .map_err(|e| Failure::from((e.into(), "get_online_users", FailureType::Fatal)))
+}
+
+pub(super) fn server_fetch_groups() -> Result<(), Failure> {
+    MAIN_SENDER.get().unwrap().clone().send(Command::ServerFetchGroups)
+    .map_err(|e| Failure::from((e.into(), "get_online_groups", FailureType::Fatal)))
 }
 
 pub(super) fn server_set_echo_availability(availability: bool) -> Result<(), Failure> {

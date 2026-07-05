@@ -50,3 +50,21 @@ impl NetworkCommand for FetchedGroups {
     fn as_any(&self) -> &dyn Any { self }
 
 }
+
+impl ToString for FetchedGroups {
+    fn to_string(&self) -> String {
+        let mut group_strings = vec![];
+        for group in &self.groups {
+            let mut group_string = format!("{} ({}) {} open to echo, users:\n", group.name, group.id, if group.open {"is"} else {"isn't"});
+            for user in group.users.clone() {
+                group_string.push_str(&format!("  {}", user.1));
+                if user.0 == group.host {
+                    group_string.push_str(" (host)");
+                }
+                group_string.push('\n');
+            }
+            group_strings.push(group_string);
+        }
+        group_strings.join("\n")
+    }
+}

@@ -1,4 +1,4 @@
-use reverb_core::network_command::fetch_users::FetchUsers;
+use reverb_core::network_command::{fetch_groups::FetchGroups, fetch_users::FetchUsers};
 use reverb_core::network_command::set_echo_availability::SetEchoAvailability;
 use crate::{Command, MAIN_SENDER, config::internet::{server_config, update_server_config}, external::external::{self, External, ExternalRun, ExternalType}, internal::{
         internet, playlist::Playlist, queue::Queue, song::Song
@@ -92,7 +92,8 @@ impl Internal {
             Command::ServerConnect => {self.connect_to_server()},
             Command::ServerUpdateStatus(status) => {self.server_update_connection_status(status); Ok(())},
             Command::ServerAdd(name, address, certificate) => {self.server_add(name, address, certificate)},
-            Command::ServerGetOnlineUsers => self.server_fetch_online_users(),
+            Command::ServerFetchUsers => self.server_fetch_users(),
+            Command::ServerFetchGroups => self.server_fetch_groups(),
             Command::ServerSetEchoAvailability(availability) => self.server_set_echo_availability(availability),
             _ => Ok(()),
         }
@@ -336,8 +337,12 @@ impl Internal {
         self.server_connection.connect()
     }
 
-    pub fn server_fetch_online_users(&mut self) -> Result<(), Failure> {
+    pub fn server_fetch_users(&mut self) -> Result<(), Failure> {
         self.server_connection.send_message(Box::new(FetchUsers{open_to_echo: None}))
+    }
+
+    pub fn server_fetch_groups(&mut self) -> Result<(), Failure> {
+        self.server_connection.send_message(Box::new(FetchGroups{open: None}))
     }
 
     pub fn server_update_connection_status(&mut self, status: internet::connection::ConnectionStatus) {
