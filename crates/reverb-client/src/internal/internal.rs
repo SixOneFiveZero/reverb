@@ -337,7 +337,7 @@ impl Internal {
     }
 
     pub fn server_fetch_online_users(&mut self) -> Result<(), Failure> {
-        self.server_connection.send_message(Box::new(FetchUsers{open_to_echo: true}))
+        self.server_connection.send_message(Box::new(FetchUsers{open_to_echo: None}))
     }
 
     pub fn server_update_connection_status(&mut self, status: internet::connection::ConnectionStatus) {

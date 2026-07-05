@@ -62,7 +62,7 @@ pub fn handle_fetch_users(packet: Packet) -> Result<Option<Box<dyn NetworkComman
         .filter_map(|id_ref| {
             let id = *id_ref.key();
 
-            if command.open_to_echo && !OPEN_USERS.contains(&id) {
+            if match command.open_to_echo {Some(open_to_echo) => open_to_echo, None => false} && !OPEN_USERS.contains(&id) {
                 return None;
             }
             
@@ -82,7 +82,7 @@ pub fn handle_fetch_groups(packet: Packet) -> Result<Option<Box<dyn NetworkComma
         .filter_map(|id_ref| {
             let id = *id_ref.key();
 
-            if command.open && !OPEN_GROUPS.contains(&id) {
+            if match command.open {Some(open) => open, None => false} && !OPEN_GROUPS.contains(&id) {
                 return None;
             }
             
