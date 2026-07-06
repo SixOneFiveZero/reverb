@@ -5,8 +5,10 @@ use std::any::Any;
 
 use crate::{failure::failure::{Failure, FailureType}, network_command::{ID::NetworkCommandID, helpers::{NetworkCommand, QueryOrNotify}}};
 use anyhow::anyhow;
+use postcard::{from_bytes, to_allocvec};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FetchUsers {
     pub open_to_echo: Option<bool>,
 }
@@ -15,27 +17,18 @@ impl NetworkCommand for FetchUsers {
     fn number(&self) -> u8 {
         Self::ID
     }
-    fn serialize(&self) -> Result<Vec<u8>, Failure> {
-        let user_data = match self.open_to_echo {
-            Some(open) => [open as u8 + 1], // +1 so we can use 0 to represent None value of option as 0
-            None => [0],
-        };
 
-        Ok(user_data.to_vec())
+    fn serialize(&self) -> Result<Vec<u8>, Failure> {
+        let data = to_allocvec(&self)
+            .map_err(|e| Failure::from((anyhow!("failed to serialize FetchUsers: {e}"), FailureType::Warning)))?;
+        Ok(data)
     }
     fn parse(data: Vec<u8>) -> Result<Self, Failure> where Self: Sized {
-        if data.len() != 2 {
-            return Err(Failure::from((anyhow!("Failed to parse FetchUsers: Invalid data length: {}, from data: {:?}", data.len(), data), FailureType::Warning)));
-        }
-        let user_data = match data[1] {
-            0 => None,
-            1 => Some(false),
-            2 => Some(true),
-            _ => { return Err(Failure::from((anyhow!("Failed to parse FetchUsers: Invalid open_to_echo value: {}, from data: {:?}", data[1], data), FailureType::Warning))); }
-        };
-
-        Ok(FetchUsers { open_to_echo: user_data })
+        let group_info: Self = from_bytes(&data)
+            .map_err(|e| Failure::from((anyhow!("failed to deserialize FetchUsers: {e}"), FailureType::Warning)))?; 
+        Ok(group_info)
     }
+
     fn query_or_notify(&self) -> QueryOrNotify {
         QueryOrNotify::Query
     }

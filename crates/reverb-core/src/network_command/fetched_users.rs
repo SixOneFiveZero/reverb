@@ -5,10 +5,10 @@ use std::{any::Any, collections::HashSet};
 use crate::{failure::failure::{Failure, FailureType}, network_command::{ID::NetworkCommandID, helpers::{NetworkCommand, QueryOrNotify}}};
 use anyhow::anyhow;
 use compact_str::CompactString;
-use postcard::{from_bytes, to_slice};
+use postcard::{from_bytes, to_allocvec};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FetchedUsers {
     pub users: HashSet<UserInfo>
 }
@@ -25,31 +25,16 @@ impl NetworkCommand for FetchedUsers {
     fn number(&self) -> u8 {
         Self::ID
     }
+
     fn serialize(&self) -> Result<Vec<u8>, Failure> {
-        let mut data = vec![];
-
-        let mut buffer = [0u8; 512];
-        let user_data = to_slice(&self.users, &mut buffer)
+        let data = to_allocvec(&self)
             .map_err(|e| Failure::from((anyhow!("failed to serialize FetchedUsers: {e}"), FailureType::Warning)))?;
-        data.extend_from_slice(user_data);
-
         Ok(data)
     }
     fn parse(data: Vec<u8>) -> Result<Self, Failure> where Self: Sized {
-        if data.len() < 2 {
-            return Err(Failure::from((anyhow!("FetchedUsers Parsing Error: No Online Users"), FailureType::Warning)));
-        }
-        let users: HashSet<UserInfo> = from_bytes(&data[1..])
-            .map_err(|e| Failure::from((anyhow!("failed to parse FetchedUsers: {e}"), FailureType::Warning)))?;
-
-        for user in &users {
-            println!("{}, {}", user.username, user.user_id);
-        }
-        let fetched_users = FetchedUsers {
-            users
-        };
-        
-        Ok(fetched_users)
+        let user_info: Self = from_bytes(&data)
+            .map_err(|e| Failure::from((anyhow!("failed to deserialize FetchedUsers: {e}"), FailureType::Warning)))?; 
+        Ok(user_info)
     }
 
     fn query_or_notify(&self) -> QueryOrNotify {
@@ -57,7 +42,6 @@ impl NetworkCommand for FetchedUsers {
     }
 
     fn as_any(&self) -> &dyn Any { self }
-
 }
 
 impl ToString for UserInfo {

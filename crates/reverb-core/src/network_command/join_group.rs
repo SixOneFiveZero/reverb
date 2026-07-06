@@ -3,7 +3,7 @@
 
 use std::any::Any;
 
-use postcard::{from_bytes, to_slice};
+use postcard::{from_bytes, to_allocvec};
 use serde::{Deserialize, Serialize};
 
 use crate::{failure::failure::{Failure, FailureType}, network_command::{ID::NetworkCommandID, helpers::{NetworkCommand, QueryOrNotify}}};
@@ -18,22 +18,22 @@ impl NetworkCommand for JoinGroup {
     fn number(&self) -> u8 {
         Self::ID
     }
-    fn serialize(&self) -> Result<Vec<u8>, Failure> {
-        let mut buffer = [0u8; 512];
-        let group_data = to_slice(&self, &mut buffer)
-            .map_err(|e| Failure::from((anyhow!("failed to serialize JoinGroup: {e}"), FailureType::Warning)))?;
 
-        let data = group_data.to_vec();
+    fn serialize(&self) -> Result<Vec<u8>, Failure> {
+        let data = to_allocvec(&self)
+            .map_err(|e| Failure::from((anyhow!("failed to serialize JoinGroup: {e}"), FailureType::Warning)))?;
         Ok(data)
     }
     fn parse(data: Vec<u8>) -> Result<Self, Failure> where Self: Sized {
-        let group_info: Self = from_bytes(&data)
+        let user_info: Self = from_bytes(&data)
             .map_err(|e| Failure::from((anyhow!("failed to deserialize JoinGroup: {e}"), FailureType::Warning)))?; 
-        Ok(group_info)
+        Ok(user_info)
     }
+
     fn query_or_notify(&self) -> QueryOrNotify {
         QueryOrNotify::Query
     }
+
     fn as_any(&self) -> &dyn Any { self }
 }
 
