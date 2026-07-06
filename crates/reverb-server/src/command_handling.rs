@@ -8,7 +8,9 @@ use anyhow::anyhow;
 
 use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{create_new_group::CreateNewGroup, failure::NetworkFailure, fetch_groups::FetchGroups, fetch_users::FetchUsers, fetched_groups::FetchedGroups, fetched_users::FetchedUsers, helpers::NetworkCommand, join_group::JoinGroup, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus}};
 
+////////////////////
 // helpers
+////////////////////
 
 fn try_get_set_echo_availability(item: &Box<dyn NetworkCommand + Send + Sync>) -> Result<SetEchoAvailability, Failure> {
     if let Some(command) = item.as_any().downcast_ref::<SetEchoAvailability>() {
@@ -53,7 +55,11 @@ fn try_get_fetch_groups(item: &Box<dyn NetworkCommand + Send + Sync>) -> Result<
     }
 }
 
+/////////////////////////////
 // handlers
+/////////////////////////////
+
+// fetch commands
 
 pub fn handle_fetch_users(packet: Packet) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
     let command = try_get_fetch_users(packet.payload())?;
@@ -62,7 +68,7 @@ pub fn handle_fetch_users(packet: Packet) -> Result<Option<Box<dyn NetworkComman
         .filter_map(|id_ref| {
             let id = *id_ref.key();
 
-            if match command.open_to_echo {Some(open_to_echo) => open_to_echo, None => false} && !OPEN_USERS.contains(&id) {
+            if command.open_to_echo.unwrap_or_default() && !OPEN_USERS.contains(&id) {
                 return None;
             }
             
@@ -75,6 +81,7 @@ pub fn handle_fetch_users(packet: Packet) -> Result<Option<Box<dyn NetworkComman
         users
     })))
 }
+
 pub fn handle_fetch_groups(packet: Packet) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
     let command = try_get_fetch_groups(packet.payload())?;
 
@@ -82,7 +89,7 @@ pub fn handle_fetch_groups(packet: Packet) -> Result<Option<Box<dyn NetworkComma
         .filter_map(|id_ref| {
             let id = *id_ref.key();
 
-            if match command.open {Some(open) => open, None => false} && !OPEN_GROUPS.contains(&id) {
+            if command.open.unwrap_or_default() && !OPEN_GROUPS.contains(&id) {
                 return None;
             }
             
@@ -95,6 +102,8 @@ pub fn handle_fetch_groups(packet: Packet) -> Result<Option<Box<dyn NetworkComma
         groups
     })))
 }
+
+// set user settings commands
 
 pub fn handle_set_echo_availability(packet: Packet, user_id: &u64) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
     let command = try_get_set_echo_availability(packet.payload())?;
@@ -125,6 +134,8 @@ pub fn handle_set_online_status(packet: Packet, user_id: &u64) -> Result<Option<
 
     Err(Failure::from((anyhow!("failed to set online status for user_id: {user_id}"), FailureType::Warning)))
 }
+
+// group commands
 
 pub fn handle_create_new_group(packet: Packet, user_id: &u64) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
     let command = try_get_create_new_group(packet.payload())?;

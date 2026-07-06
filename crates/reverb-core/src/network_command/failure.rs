@@ -12,6 +12,7 @@ use anyhow::anyhow;
 // TODO better error handling
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NetworkFailure {
+    InvalidCommandId(u8),
     JoinGroup(String)
 }
 
