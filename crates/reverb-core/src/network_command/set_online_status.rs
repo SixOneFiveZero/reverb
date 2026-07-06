@@ -14,10 +14,10 @@ impl NetworkCommand for SetOnlineStatus {
         Ok(vec![self.0 as u8])
     }
     fn parse(data: Vec<u8>) -> Result<Self, Failure> where Self: Sized {
-        if data.len() != 2 {
+        if data.len() != 1 {
             return Err(Failure::from((anyhow!("invalid data length for SetOnlineStatus"), FailureType::Warning)));
         }
-        let availability = match data[1] {
+        let availability = match data[0] {
             0 => false,
             1 => true,
             _ => return Err(Failure::from((anyhow!("invalid value for SetOnlineStatus"), FailureType::Warning)))

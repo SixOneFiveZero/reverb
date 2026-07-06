@@ -18,9 +18,12 @@ pub enum QueryOrNotify {
 }
 
 // parse data to the apporpriate command from the netowrk
-pub fn parse_command(data: Vec<u8>) -> Result<Box<dyn NetworkCommand + Send + Sync>, Failure> {
-    println!("command size: {} bytes", data.len()); // Debug line
-    let cmd_number = data[0];
+// TODO: find a better variable name than full_data
+pub fn parse_command(full_data: Vec<u8>) -> Result<Box<dyn NetworkCommand + Send + Sync>, Failure> {
+    println!("command size: {} bytes", full_data.len()); // Debug line
+    let cmd_number = full_data[0];
+
+    let data: Vec<u8> = full_data.into_iter().skip(1).collect();
 
     match cmd_number {
         DefaultCommand::ID => Ok(Box::new(DefaultCommand::parse(data)?)),

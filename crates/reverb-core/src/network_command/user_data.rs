@@ -18,7 +18,7 @@ impl NetworkCommand for UserData {
         Ok(vec![self.echo_avaliable as u8])
     }
     fn parse(_data: Vec<u8>) -> Result<Self, Failure> where Self: Sized {
-        let echo_avaliable = match _data[1] {
+        let echo_avaliable = match _data[0] {
             0 => false,
             1 => true,
             _ => return Err(Failure::from((anyhow!("invalid value for UserData"), FailureType::Warning)))
