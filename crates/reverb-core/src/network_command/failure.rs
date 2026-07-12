@@ -37,3 +37,9 @@ impl NetworkCommand for NetworkFailure {
     }
     fn as_any(&self) -> &dyn Any { self }
 }
+
+impl ToString for NetworkFailure {
+    fn to_string(&self) -> String {
+        format!("NetworkFailure: {:#?}", self)
+    }
+}

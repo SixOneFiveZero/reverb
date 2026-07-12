@@ -182,3 +182,8 @@ pub(super) fn server_create_new_group(group_name: String, open: bool, visible: b
     MAIN_SENDER.get().unwrap().clone().send(Command::ServerCreateGroup { group_name, open, visible, invited_users })
     .map_err(|e| Failure::from((e.into(), "create_group", FailureType::Fatal)))
 }
+
+pub(super) fn server_join_group(group_id: u32) -> Result<(), Failure> {
+    MAIN_SENDER.get().unwrap().clone().send(Command::ServerJoinGroup(group_id))
+    .map_err(|e| Failure::from((e.into(), "join_group", FailureType::Fatal)))
+}

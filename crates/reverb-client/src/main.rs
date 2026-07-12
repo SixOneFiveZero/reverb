@@ -160,6 +160,7 @@ pub enum Command {
         visible: bool,
         invited_users: Vec<u64>,
     },
+    ServerJoinGroup(u32), // group_id
     Failure(Failure),
 }
 

@@ -1,3 +1,4 @@
+use reverb_core::network_command::ID::NetworkCommandID;
 use reverb_core::network_command::{fetch_groups::FetchGroups, fetch_users::FetchUsers};
 use reverb_core::network_command::set_echo_availability::SetEchoAvailability;
 use crate::{Command, MAIN_SENDER, config::internet::{server_config, update_server_config}, external::external::{self, External, ExternalRun, ExternalType}, internal::{
@@ -6,6 +7,7 @@ use crate::{Command, MAIN_SENDER, config::internet::{server_config, update_serve
 };
 use reverb_core::{failure::failure::{Failure, FailureType}};
 
+use anyhow::anyhow;
 use std::{num::NonZeroUsize, sync::mpsc};
 use lru::LruCache;
 use std::sync::mpsc::Sender;
@@ -96,6 +98,16 @@ impl Internal {
             Command::ServerFetchGroups => self.server_fetch_groups(),
             Command::ServerSetEchoAvailability(availability) => self.server_set_echo_availability(availability),
             Command::ServerCreateGroup { group_name, open, visible, invited_users } => self.server_create_group(group_name, open, visible, invited_users),
+            Command::ServerJoinGroup(group_id) => self.server_join_group(group_id),
+            Command::ServerResponse(packet) => if packet.payload().number() == reverb_core::network_command::failure::NetworkFailure::ID {
+                if let Some(network_failure) = packet.payload().as_any().downcast_ref::<reverb_core::network_command::failure::NetworkFailure>() {
+                    Err(Failure::from((anyhow!("Server had an error: {}", network_failure.to_string()), FailureType::Warning)))
+                } else {
+                    Err(Failure::from((anyhow!("Failed to parse failure from server response: {:?}", packet), FailureType::Warning)))
+                }
+            } else {
+                Ok(())
+            },
             _ => Ok(()),
         }
     }
@@ -371,6 +383,13 @@ impl Internal {
             open,
             visible,
             invited_users
+        };
+        self.server_connection.send_message(Box::new(command))
+    }
+
+    pub fn server_join_group(&mut self, group_id: u32) -> Result<(), Failure> {
+        let command = reverb_core::network_command::join_group::JoinGroup {
+            group_id
         };
         self.server_connection.send_message(Box::new(command))
     }

@@ -1,6 +1,7 @@
 use anyhow::anyhow;
 use reverb_core::network_command::ID::NetworkCommandID;
 use reverb_core::network_command::fetched_users::FetchedUsers;
+use std::collections::binary_heap::PeekMut;
 use std::sync::{Mutex, Arc};
 use once_cell::sync::Lazy;
 
@@ -171,8 +172,13 @@ pub fn run_cli(update_interval: u64) -> Result<(), Failure> {
                 _ => Err(Failure::from((anyhow!("Invalid input for server create new group command: {}", args), FailureType::Warning))),
             }
         }
-    ), Args, Some("server"));
-
+    ), Args, Some("server"))
+    .add("server join group", vec!["join-group", "jg", "group-join", "join"], " <group_id> : Join a group by ID", Some(|args| {
+        let group_id: u32 = args.parse::<u32>().map_err(|e| Failure::from((e.into(), "Failed to parse group_id", FailureType::Warning)))?;
+        ui::server_join_group(group_id)
+        }),
+        Args, Some("server")
+    );
 
     // input thread
     let (input_tx, input_rx) = std::sync::mpsc::channel::<String>();
@@ -224,12 +230,12 @@ pub fn handle_command(command: Command) -> Result<(), Failure> {
                 },
                 reverb_core::network_command::group_info::GroupInfo::ID => {
                     if let Some(group_info) = packet.payload.as_any().downcast_ref::<reverb_core::network_command::group_info::GroupInfo>() {
-                        cli_ui::show_text_in_right_third(&format!("Created new group:\n{}", group_info.to_string()));
+                        cli_ui::show_text_in_right_third(&format!("Group info:\n{}", group_info.to_string()));
                     } else {
                         println!("Failed to parse new group info from server response");
                     }
                     Ok(())
-                }
+                },
                 _ => Ok(())
             }
         },
