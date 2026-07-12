@@ -95,6 +95,7 @@ impl Internal {
             Command::ServerFetchUsers => self.server_fetch_users(),
             Command::ServerFetchGroups => self.server_fetch_groups(),
             Command::ServerSetEchoAvailability(availability) => self.server_set_echo_availability(availability),
+            Command::ServerCreateGroup { group_name, open, visible, invited_users } => self.server_create_group(group_name, open, visible, invited_users),
             _ => Ok(()),
         }
     }
@@ -362,5 +363,15 @@ impl Internal {
     pub fn server_set_echo_availability(&mut self, availability: bool) -> Result<(), Failure> {
         update_server_config(None, None, None, Some(availability))?;
         self.server_connection.send_message(Box::new(SetEchoAvailability(availability)))
+    }
+
+    pub fn server_create_group(&mut self, group_name: String, open: bool, visible: bool, invited_users: Vec<u64>) -> Result<(), Failure> {
+        let command = reverb_core::network_command::create_new_group::CreateNewGroup {
+            group_name: group_name.into(),
+            open,
+            visible,
+            invited_users
+        };
+        self.server_connection.send_message(Box::new(command))
     }
 }

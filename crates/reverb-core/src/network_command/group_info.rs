@@ -39,3 +39,17 @@ impl NetworkCommand for GroupInfo {
     }
     fn as_any(&self) -> &dyn Any { self }
 }
+
+impl ToString for GroupInfo {
+    fn to_string(&self) -> String {
+        let mut group_string = format!("{} ({}) {} open to echo, users:\n", self.name, self.id, if self.open {"is"} else {"isn't"});
+        for user in self.users.clone() {
+            group_string.push_str(&format!("  {}", user.1));
+            if user.0 == self.host {
+                group_string.push_str(" (host)");
+            }
+            group_string.push('\n');
+        }
+        group_string
+    }
+}

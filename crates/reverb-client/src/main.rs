@@ -154,6 +154,12 @@ pub enum Command {
     ServerFetchGroups,
     ServerResponse(Packet),
     ServerSetEchoAvailability(bool),
+    ServerCreateGroup {
+        group_name: String,
+        open: bool,
+        visible: bool,
+        invited_users: Vec<u64>,
+    },
     Failure(Failure),
 }
 

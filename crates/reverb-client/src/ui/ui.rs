@@ -177,3 +177,8 @@ pub(super) fn server_set_echo_availability(availability: bool) -> Result<(), Fai
     MAIN_SENDER.get().unwrap().clone().send(Command::ServerSetEchoAvailability(availability))
     .map_err(|e| Failure::from((e.into(), "set_echo_availability", FailureType::Fatal)))
 }
+
+pub(super) fn server_create_new_group(group_name: String, open: bool, visible: bool, invited_users: Vec<u64>) -> Result<(), Failure> {
+    MAIN_SENDER.get().unwrap().clone().send(Command::ServerCreateGroup { group_name, open, visible, invited_users })
+    .map_err(|e| Failure::from((e.into(), "create_group", FailureType::Fatal)))
+}

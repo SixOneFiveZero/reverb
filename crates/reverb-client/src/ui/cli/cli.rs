@@ -145,7 +145,33 @@ pub fn run_cli(update_interval: u64) -> Result<(), Failure> {
             Ok(availability) => ui::server_set_echo_availability(availability),
             Err(e) => Err(Failure::from((e.into(), FailureType::Warning))),
         }
-    }), Args, Some("server"));
+    }), Args, Some("server"))
+    .add("server create new group", vec!["create-group", "cg", "new-group", "group-create"], " <name> <open> <visible> <invited_user_IDs(CSV)> : Create a new group",
+        Some(|args| {
+            let mut parts = args.split(' ');
+            match (parts.next(), parts.next(), parts.next(), parts.next(), parts.next()) {
+                (Some(name), Some(open_str), Some(visible_str), invited_users_str_opt, remainder) => {
+                    // check if there are any extra arguments
+                    if remainder.is_some() {
+                        return Err(Failure::from((anyhow!("Too many arguments for server create new group command: {}", args), FailureType::Warning)));
+                    }
+                    let open = open_str.parse::<bool>().map_err(|e| Failure::from((e.into(), "open must be either true or false", FailureType::Warning)))?;
+                    let visible = visible_str.parse::<bool>().map_err(|e| Failure::from((e.into(), "visible must be either true or false", FailureType::Warning)))?;
+                    let invited_users = match invited_users_str_opt {
+                        Some(s) => s.split(',')
+                            .map(|s| {
+                                s.trim().parse::<u64>()
+                                .map_err(|e| {Failure::from((e.into(), "invited_user_IDs must be a comma-separated list of user IDs", FailureType::Warning))})
+                            })
+                            .collect::<Result<Vec<u64>, Failure>>(),
+                        None => Ok(vec![]),
+                    }?;
+                    ui::server_create_new_group(name.to_string(), open, visible, invited_users)
+                },
+                _ => Err(Failure::from((anyhow!("Invalid input for server create new group command: {}", args), FailureType::Warning))),
+            }
+        }
+    ), Args, Some("server"));
 
 
     // input thread
@@ -196,6 +222,14 @@ pub fn handle_command(command: Command) -> Result<(), Failure> {
                     }
                     Ok(())
                 },
+                reverb_core::network_command::group_info::GroupInfo::ID => {
+                    if let Some(group_info) = packet.payload.as_any().downcast_ref::<reverb_core::network_command::group_info::GroupInfo>() {
+                        cli_ui::show_text_in_right_third(&format!("Created new group:\n{}", group_info.to_string()));
+                    } else {
+                        println!("Failed to parse new group info from server response");
+                    }
+                    Ok(())
+                }
                 _ => Ok(())
             }
         },
