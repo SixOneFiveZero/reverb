@@ -5,6 +5,8 @@
 /configs/*
 /data/*
 certs/
+.envrc
+.direnv/
 
 !sample/
 !sample/default_song.mp3
