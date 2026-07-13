@@ -16,7 +16,7 @@ impl NetworkCommand for FetchedGroups {
     fn number(&self) -> u8 {
         Self::ID
     }
-        
+
     fn serialize(&self) -> Result<Vec<u8>, Failure> {
         let data = to_allocvec(&self)
             .map_err(|e| Failure::from((anyhow!("failed to serialize FetchedGroups: {e}"), FailureType::Warning)))?;
@@ -24,7 +24,7 @@ impl NetworkCommand for FetchedGroups {
     }
     fn parse(data: Vec<u8>) -> Result<Self, Failure> where Self: Sized {
         let group_info: Self = from_bytes(&data)
-            .map_err(|e| Failure::from((anyhow!("failed to deserialize FetchedGroups: {e}"), FailureType::Warning)))?; 
+            .map_err(|e| Failure::from((anyhow!("failed to deserialize FetchedGroups: {e}"), FailureType::Warning)))?;
         Ok(group_info)
     }
 

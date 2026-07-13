@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{network_command::{default_command::DefaultCommand, helpers::{NetworkCommand, parse_command, serialize}}, failure::failure::{Failure, FailureType}}; 
+use crate::{network_command::{default_command::DefaultCommand, helpers::{NetworkCommand, parse_command, serialize}}, failure::failure::{Failure, FailureType}};
 use anyhow::anyhow;
 use compact_str::{CompactString, ToCompactString};
 
@@ -11,7 +11,7 @@ use compact_str::{CompactString, ToCompactString};
 //  e.g. adding new possible functions to payload ect.
 // Patch release when there is a change to the packet structure or protocol which is backwards compatible and does not add any new features.
 //  e.g. fixing a bug, changing error messages, changing a functions internals, ect.
-pub static NETWORK_VERSION: [u8; 3] = [0, 1, 0];
+pub static NETWORK_VERSION: [u8; 3] = [1, 0, 0];
 
 
 pub struct Packet {

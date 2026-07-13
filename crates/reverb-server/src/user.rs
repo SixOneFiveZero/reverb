@@ -102,4 +102,15 @@ impl User {
     pub fn remove_group(&mut self) {
         self.group_info = None;
     }
+    pub fn leave_group(&mut self) {
+        if let Some((id, _)) = self.group_info {
+            if let Some(group_ref ) = GROUPS.get_mut(&id).as_mut() {
+                group_ref.users.remove(&self.id);
+                if group_ref.users.is_empty() {
+                    remove_group(&group_ref.id);
+                }
+            }
+            self.group_info = None;
+        }
+    }
 }

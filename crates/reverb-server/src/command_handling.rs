@@ -1,11 +1,9 @@
 // cast boxed NetworkCommand into a specific network command, then handle that command
 
 use std::{collections::BTreeMap, sync::atomic::Ordering};
-
-use crate::{GROUPS, NEXT_GROUP_ID, ONLINE_USERS, OPEN_GROUPS, OPEN_USERS, USERS, VISIBLE_GROUPS, group::{Group, add_group}};
-
 use anyhow::anyhow;
 
+use crate::{GROUPS, NEXT_GROUP_ID, ONLINE_USERS, OPEN_GROUPS, OPEN_USERS, USERS, VISIBLE_GROUPS, group::{Group, add_group}};
 use reverb_core::{failure::failure::{Failure, FailureType}, network::*, network_command::{create_new_group::CreateNewGroup, failure::NetworkFailure, fetch_groups::FetchGroups, fetch_users::FetchUsers, fetched_groups::FetchedGroups, fetched_users::FetchedUsers, helpers::NetworkCommand, join_group::JoinGroup, set_echo_availability::SetEchoAvailability, set_online_status::SetOnlineStatus}};
 
 ////////////////////
@@ -71,12 +69,12 @@ pub fn handle_fetch_users(packet: Packet) -> Result<Option<Box<dyn NetworkComman
             if command.open_to_echo.unwrap_or_default() && !OPEN_USERS.contains(&id) {
                 return None;
             }
-            
+
             USERS.get(&id)
                 .map(|user_ref| user_ref.value().user_info())
         })
         .collect();
-    
+
     Ok(Some(Box::new(FetchedUsers{
         users
     })))
@@ -92,12 +90,12 @@ pub fn handle_fetch_groups(packet: Packet) -> Result<Option<Box<dyn NetworkComma
             if command.open.unwrap_or_default() && !OPEN_GROUPS.contains(&id) {
                 return None;
             }
-            
+
             GROUPS.get(&id)
                 .map(|group_ref| group_ref.value().get_info())
         })
         .collect();
-    
+
     Ok(Some(Box::new(FetchedGroups{
         groups
     })))
@@ -139,7 +137,12 @@ pub fn handle_set_online_status(packet: Packet, user_id: &u64) -> Result<Option<
 
 pub fn handle_create_new_group(packet: Packet, user_id: &u64) -> Result<Option<Box<dyn NetworkCommand + Send + Sync>>, Failure> {
     let command = try_get_create_new_group(packet.payload())?;
-    let host_name = USERS.get(user_id).unwrap().value().username().clone();
+    let host_name = if let Some(user) = USERS.get_mut(user_id).as_mut() {
+        user.value_mut().leave_group();
+        user.username().clone()
+    } else {
+        todo!()
+    };
 
     let group_id = NEXT_GROUP_ID.fetch_add(1, Ordering::Relaxed); // wraps around when full overwriting existing groups
     let mut users = BTreeMap::new();
@@ -153,7 +156,7 @@ pub fn handle_create_new_group(packet: Packet, user_id: &u64) -> Result<Option<B
         visible: command.visible,
     };
     add_group(group_id, group.clone());
-    
+
     Ok(Some(Box::new(
         group.get_info()
     )))
@@ -174,10 +177,12 @@ pub fn handle_join_group(packet: Packet, user_id: &u64) -> Result<Option<Box<dyn
         let response = NetworkFailure::JoinGroup("group not open to join".to_string());
         return Ok(Some(Box::new(response)));
     }
-    
+
     if let Some(mut user_ref) = USERS.get_mut(user_id) {
-        target_group.users.insert(*user_id, user_ref.value().username().clone());
-        user_ref.value_mut().update_group_info(target_group.id, target_group.group_name.clone());
+        let user = user_ref.value_mut();
+        target_group.users.insert(*user_id, user.username().clone());
+        user.leave_group();
+        user.update_group_info(target_group.id, target_group.group_name.clone());
     }
 
     Ok(Some(Box::new(
