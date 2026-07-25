@@ -72,7 +72,7 @@ pub fn run_cli(update_interval: u64) -> Result<(), Failure> {
         ui::play_new(song)
     }), Args, Some("play"))
     // playlist commands
-    .add("playlist", vec!["playlist", "p", "pl"], " : List the current playlist", Some(|_| {
+    .add("playlist", vec!["playlist", "pl"], " : List the current playlist", Some(|_| {
         println!("{}:", PLAYLIST.lock().unwrap().as_str());
         let songs = ui::playlist_get_songs(PLAYLIST.lock().unwrap().as_str())?;
         for (index, song) in songs.iter().enumerate() {
