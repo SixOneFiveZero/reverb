@@ -28,11 +28,12 @@ impl std::fmt::Display for Failure {
             Failure::Fatal(e, msg) => (e, msg),
             Failure::Warning(e, msg) => (e, msg),
         };
-        write!(f, "{}", if msg.is_empty() {
+        write!(f, "{} \n{}", if msg.is_empty() {
             e.to_string()
         } else {
             format!("{}: {}", msg, e)
-        })
+        }, 
+        e.backtrace())
     }
 }
 

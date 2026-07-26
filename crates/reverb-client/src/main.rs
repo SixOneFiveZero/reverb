@@ -1,4 +1,4 @@
-use std::thread;
+use std::{env, thread};
 use std::{sync::mpsc, time::Duration};
 
 use internal::song::Song;
@@ -23,6 +23,11 @@ mod ui;
 pub static MAIN_SENDER: OnceCell<mpsc::Sender<Command>> = OnceCell::new();
 
 fn main() {
+    unsafe {// safe since there are no other threads running yet
+        env::set_var("RUST_BACKTRACE", "1");
+    }
+
+
     //clear terminal first without clearing scrollback buffer
     let (_, height) = match crossterm::terminal::size() {
         Ok((width, height)) => (width, height),
