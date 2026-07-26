@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use anyhow::anyhow;
 use reverb_core::failure::failure::{Failure, FailureType};
 
-use crate::ui::cli::{cli_ui, command_spec::CommandCallType::Args};
+use crate::ui::cli::{cli_ui, command_spec::CommandCallType::{Args, NoArgs}};
 
+static HELP_ALIASES: [&str; 2] = ["help", "h"];
 pub(super) struct CommandSpec {
     nodes: HashMap<String, CommandSpecNode>,
 }
@@ -216,85 +217,121 @@ impl CommandSpec {
         handler: Option<fn(&str) -> Result<(), Failure>>,
         call_type: CommandCallType,
         parent: Option<&str>,
-    ) -> CommandSpec {
+    ) -> Result<CommandSpec, Failure> {
         let name = name.to_string();
 
         // check inputs are valid
         if self.nodes.contains_key(&name) {
-            unreachable!(
-                "Command spec node with name {} already exists, this should not be possible please report this bug",
-                name
-            );
+            return Err(Failure::from((
+                anyhow!(
+                    "Command spec node with name {} already exists",
+                    name
+                ),
+                FailureType::Fatal,
+            )));
         }
         if valid_aliases.len() == 0 {
-            unreachable!(
-                "Command spec node must have at least one valid alias, this should not be possible please report this bug"
-            );
+            return Err(Failure::from((
+                anyhow!(
+                    "Command spec node must have at least one valid alias"
+                ),
+                FailureType::Fatal,
+            )));
         }
+
         for alias in &valid_aliases {
             if alias.contains(' ') {
-                unreachable!(
-                    "Command spec node aliases cannot contain spaces, invalid alias: {}, this should not be possible please report this bug",
-                    alias
-                );
+                return Err(Failure::from((
+                    anyhow!(
+                        "Command spec node aliases cannot contain spaces, invalid alias: {}",
+                        alias
+                    ),
+                    FailureType::Fatal,
+                )));
+            }
+            if !name.ends_with(" help") && HELP_ALIASES.contains(alias) {
+                return Err(Failure::from((
+                    anyhow!(
+                        "Command spec node aliases cannot be '{}', this is a reserved help alias", alias
+                    ),
+                    FailureType::Fatal,
+                )));
             }
         }
 
-        let add_help_child = call_type != Args && !valid_aliases.contains(&"help"); // calculated here before moving values in node creation
+        let parent = parent.unwrap_or("root");
+
+        if parent.ends_with(" help") {
+            return Err(Failure::from((
+                anyhow!(
+                    "Parent command {} cannot be a help command, or command cant end with reserved ' help' suffix",
+                    parent
+                ),
+                FailureType::Fatal,
+            )));
+        }
+
+        let parent_node = match self.nodes.get(&parent.to_string()) {
+            Some(parent_node) => parent_node,
+            None => {
+                return Err(Failure::from((
+                    anyhow!(
+                        "Parent node {} not found when adding command spec node",
+                        parent
+                    ),
+                    FailureType::Fatal,
+                )));
+            }
+        };
+
+        for child in &parent_node.children {
+            for &alias in valid_aliases.iter() {
+                if self.nodes.get(child).unwrap().valid_aliases.contains(&alias.to_string()) {
+                    return Err(Failure::from((
+                        anyhow!(
+                            "Parent node {} already has a child with alias {}, this should not be possible please report this bug",
+                            parent_node.valid_aliases.get(0).unwrap_or(&"".to_string()),
+                            alias
+                        ),
+                        FailureType::Fatal,
+                    )));
+                }
+            }
+        }
+
+        if parent_node.call_type == Args {
+            return Err(Failure::from((
+                anyhow!(
+                    "Parent node {} is an args command, it cannot have children, this should not be possible please report this bug",
+                    parent_node.valid_aliases.get(0).unwrap_or(&"".to_string())
+                ),
+                FailureType::Fatal,
+            )));
+        }
+        
         let node = CommandSpecNode::new(
             valid_aliases,
             help.to_string(),
             handler,
             call_type,
-            parent.unwrap_or("root"),
+            parent,
         );
+
         self.nodes.insert(name.clone(), node);
-        let parent = match parent {
-            Some(parent) => parent,
-            None => "root",
-        };
+        self.nodes.get_mut(parent).unwrap().children.push(name.clone());
 
-        let parent_node = match self.nodes.get(&parent.to_string()) {
-            Some(parent_node) => parent_node,
-            None => {
-                unreachable!(
-                    "Parent node {} not found when adding command spec node, this should not be possible please report this bug",
-                    parent
-                )
-            }
-        };
-
-        for child in &parent_node.children {
-            for alias in self.get(&name).unwrap().valid_aliases.iter() {
-                if self.nodes.get(child).unwrap().valid_aliases.contains(alias) {
-                    unreachable!(
-                        "Parent node {} already has a child with alias {}, this should not be possible please report this bug",
-                        parent_node.valid_aliases.get(0).unwrap_or(&"".to_string()),
-                        alias
-                    );
-                }
-            }
-        }
-        if parent_node.call_type == Args {
-            unreachable!(
-                "Parent node {} is an args command, it cannot have children, this should not be possible please report this bug",
-                parent_node.valid_aliases.get(0).unwrap_or(&"".to_string())
-            );
-        }
-        self.nodes.get_mut(&parent.to_string()).unwrap().children.push(name.clone());
-
-        if add_help_child {
-            // add a help child node
+        if !self.nodes.get(parent).unwrap().children.contains(&format!("{} help", parent)) {
+            // add a help child node to parent
             self = self.add(
-                format!("{}_help", name).as_str(),
-                vec!["help", "h"],
+                format!("{} help", parent).as_str(),
+                HELP_ALIASES.to_vec(),
                 format!(" : Show help for {} command", name).as_str(),
                 None,
                 CommandCallType::NoArgs,
-                Some(name.as_str()),
-            );
+                Some(parent),
+            )?;
         }
-        self
+        Ok(self)
     }
 
     /// Call a command from suer input.

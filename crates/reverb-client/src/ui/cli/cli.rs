@@ -27,23 +27,23 @@ pub fn run_cli(update_interval: u64) -> Result<(), Failure> {
     
     let command_spec = CommandSpec::new()
     // top-level commands
-    .add("play", vec!["play"], " : Play the current song", Some(|_| ui::play()), NoArgs, None)
-    .add("pause", vec!["pause"], " : Pause the current song", Some(|_| ui::pause()), NoArgs, None)
+    .add("root help", vec!["help", "h"], " : Display this help message", Some(|_| Ok(())), NoArgs, None)? // this MUST be the first command added to the spec due to the way the help command is implemented and this being a custom help message
+    .add("play", vec!["play"], " : Play the current song", Some(|_| ui::play()), NoArgs, None)?
+    .add("pause", vec!["pause"], " : Pause the current song", Some(|_| ui::pause()), NoArgs, None)?
     .add("play and pause", vec!["playpause", "p"], " : Play or pause the current song", Some(|_| {
         if ui::is_song_playing()? {
             ui::pause()
         } else {
             ui::play()
         }
-    }), NoArgs, None)
-    .add("quit", vec!["quit", "exit", ":q", "x"], " : Quit the application", Some(|_| ui::shutdown()), NoArgs, None)
-    .add("help", vec!["help", "h"], " : Display this help message", Some(|_| Ok(())), NoArgs, None)
-    .add("skip", vec!["skip", "s"], " : Skip the current song", Some(|_| ui::queue_next()), NoArgs, None)
+    }), NoArgs, None)?
+    .add("quit", vec!["quit", "exit", ":q", "x"], " : Quit the application", Some(|_| ui::shutdown()), NoArgs, None)?
+    .add("skip", vec!["skip", "s"], " : Skip the current song", Some(|_| ui::queue_next()), NoArgs, None)?
     .add("song", vec!["song"], " : Display the currently playing song", Some(|_| {
         let song = ui::current_song()?;
         println!("Currently playing: {} - {}", song.info.artists[0], song.info.title);
         Ok(())
-    }), NoArgs, None)
+    }), NoArgs, None)?
     // queue commands
     .add("queue", vec!["queue", "q"], " : List the current song queue", Some(|_| {
         let songs = ui::queue_get_songs()?;
@@ -51,26 +51,26 @@ pub fn run_cli(update_interval: u64) -> Result<(), Failure> {
             println!("{}: {} - {}", index, song.info.artists[0], song.info.title);
         }
         Ok(())
-    }), NoArgs, None)
+    }), NoArgs, None)?
     .add("queue add", vec!["add", "a"], " <song_type> <song_info> : Add a song to the queue", Some(|args| {
         let song = Song::new(args)?;
         ui::queue_add(song)
-    }), Args, Some("queue"))
+    }), Args, Some("queue"))?
     .add("queue remove", vec!["remove", "r"], " <index> : Remove a song from the queue", Some(|args| {
         let index: usize = args.parse().map_err(|e: std::num::ParseIntError| Failure::from((e.into(), FailureType::Warning)))?;
         ui::queue_remove(index)
-    }), Args, Some("queue"))
-    .add("queue clear", vec!["clear", "c", "cl"], " : Clear the queue", Some(|_| ui::queue_clear()), NoArgs, Some("queue"))
+    }), Args, Some("queue"))?
+    .add("queue clear", vec!["clear", "c", "cl"], " : Clear the queue", Some(|_| ui::queue_clear()), NoArgs, Some("queue"))?
     .add("queue load playlist", vec!["load"], " <playlist_name> : Load a playlist into the queue", Some(|args| {
         ui::queue_playlist(args)
-    }), Args, Some("queue"))
-    .add("queue current playlist", vec!["playlist", "p"], " : Add current playlist songs to the queue", Some(|_| ui::queue_playlist(PLAYLIST.lock().unwrap().as_str())), NoArgs, Some("queue"))
-    .add("queue shuffle", vec!["shuffle", "sh", "s"], " : Shuffle the queue", Some(|_| ui::queue_shuffle()), NoArgs, Some("queue"))
+    }), Args, Some("queue"))?
+    .add("queue current playlist", vec!["playlist", "p"], " : Add current playlist songs to the queue", Some(|_| ui::queue_playlist(PLAYLIST.lock().unwrap().as_str())), NoArgs, Some("queue"))?
+    .add("queue shuffle", vec!["shuffle", "sh", "s"], " : Shuffle the queue", Some(|_| ui::queue_shuffle()), NoArgs, Some("queue"))?
     // play sub-commands
     .add("play new", vec!["new", "n"], " <song-type> <song-info> : Play a new song from the given info", Some(|args| {
         let song = Song::new(args)?;
         ui::play_new(song)
-    }), Args, Some("play"))
+    }), Args, Some("play"))?
     // playlist commands
     .add("playlist", vec!["playlist", "pl"], " : List the current playlist", Some(|_| {
         println!("{}:", PLAYLIST.lock().unwrap().as_str());
@@ -79,7 +79,7 @@ pub fn run_cli(update_interval: u64) -> Result<(), Failure> {
             println!("{}: {} - {}", index, song.info.artists[0], song.info.title);
         }
         Ok(())
-    }), NoArgs, None)
+    }), NoArgs, None)?
     .add("playlist add", vec!["add", "a"], " <song_type> <song_info> : Add a song to the playlist (or 'playlist add playlist <name>')", Some(|args| {
         if args.starts_with("playlist ") {
             let name = args.strip_prefix("playlist ").unwrap();
@@ -88,12 +88,12 @@ pub fn run_cli(update_interval: u64) -> Result<(), Failure> {
             let song = Song::new(args)?;
             ui::playlist_add(PLAYLIST.lock().unwrap().as_str(), song)
         }
-    }), Args, Some("playlist"))
+    }), Args, Some("playlist"))?
     .add("playlist remove", vec!["remove", "r"], " <index> : Remove a song from the playlist", Some(|args| {
         let index: usize = args.parse().map_err(|e: std::num::ParseIntError| Failure::from((e.into(), FailureType::Warning)))?;
         ui::playlist_remove(PLAYLIST.lock().unwrap().as_str(), index - 1)
-    }), Args, Some("playlist"))
-    .add("playlist load", vec!["load", "l"], " <name> : Load a playlist by name", Some(|args| {*PLAYLIST.lock().unwrap() = args.to_string(); Ok(())}), Args, Some("playlist"))
+    }), Args, Some("playlist"))?
+    .add("playlist load", vec!["load", "l"], " <name> : Load a playlist by name", Some(|args| {*PLAYLIST.lock().unwrap() = args.to_string(); Ok(())}), Args, Some("playlist"))?
     .add("playlist move", vec!["move", "m"], " <from> <to> : Move a song in the playlist", Some(|args| {
         match args.split_once(' ') {
             Some((from_str, to_str)) => {
@@ -104,7 +104,7 @@ pub fn run_cli(update_interval: u64) -> Result<(), Failure> {
             }
             None => Err(Failure::from((anyhow!("Invalid input for move command: {}", args), FailureType::Warning))),
         }
-    }), Args, Some("playlist"))
+    }), Args, Some("playlist"))?
     .add("playlist new", vec!["new", "n"], " <name> [external_type] : Create a new playlist", Some(|args| {
         match args.split_once(' ') {
             Some((name, external_type)) => {
@@ -113,37 +113,37 @@ pub fn run_cli(update_interval: u64) -> Result<(), Failure> {
             }
             None => ui::playlist_new(args, None),
         }
-    }), Args, Some("playlist"))
+    }), Args, Some("playlist"))?
     .add("playlist get", vec!["get", "g"], " <index> : Get a song by index", Some(|args| {
         let index: usize = args.parse().map_err(|e: std::num::ParseIntError| Failure::from((e.into(), FailureType::Warning)))?;
         let song = ui::playlist_get_song(PLAYLIST.lock().unwrap().as_str(), index - 1)?;
         println!("{} - {}", song.info.artists[0], song.info.title);
         Ok(())
-    }), Args, Some("playlist"))
+    }), Args, Some("playlist"))?
     .add("playlist name", vec!["name"], " : Print the current playlist name", Some(|_| {
         println!("{}", PLAYLIST.lock().unwrap().as_str());
         Ok(())
-    }), NoArgs, Some("playlist"))
-    .add("playlist rename", vec!["rename", "set-name", "rn"], " <new_name> : Set the playlist name", Some(|args| {ui::playlist_set_name(PLAYLIST.lock().unwrap().as_str(), args)?; *PLAYLIST.lock().unwrap() = args.to_string(); Ok(())}), Args, Some("playlist"))
-    .add("playlist copy", vec!["copy", "c"], " <new_name> : Copy the playlist", Some(|args| ui::playlist_copy_to(PLAYLIST.lock().unwrap().as_str(), args)), Args, Some("playlist"))
-    .add("playlist clear", vec!["clear", "cl"], " : Clear the playlist", Some(|_| ui::playlist_clear(PLAYLIST.lock().unwrap().as_str())), NoArgs, Some("playlist"))
+    }), NoArgs, Some("playlist"))?
+    .add("playlist rename", vec!["rename", "set-name", "rn"], " <new_name> : Set the playlist name", Some(|args| {ui::playlist_set_name(PLAYLIST.lock().unwrap().as_str(), args)?; *PLAYLIST.lock().unwrap() = args.to_string(); Ok(())}), Args, Some("playlist"))?
+    .add("playlist copy", vec!["copy", "c"], " <new_name> : Copy the playlist", Some(|args| ui::playlist_copy_to(PLAYLIST.lock().unwrap().as_str(), args)), Args, Some("playlist"))?
+    .add("playlist clear", vec!["clear", "cl"], " : Clear the playlist", Some(|_| ui::playlist_clear(PLAYLIST.lock().unwrap().as_str())), NoArgs, Some("playlist"))?
     // server commands
-    .add("server", vec!["server"], " : Server related commands", None, NotCallable, None)
+    .add("server", vec!["server"], " : Server related commands", None, NotCallable, None)?
     .add("server add", vec!["add"], " <name> <address> <certificate_path> : Add a server configuration", Some(|args| {
         let mut parts = args.splitn(3, ' ');
         match (parts.next(), parts.next(), parts.next()) {
             (Some(name), Some(address), Some(certificate_path)) => ui::server_add(name.to_string(), address.to_string(), certificate_path.to_string()),
             _ => Err(Failure::from((anyhow!("Invalid input for server add command: {}", args), FailureType::Warning))),
         }
-    }), Args, Some("server"))
-    .add("server connect", vec!["connect", "con"], " : Connect to the server", Some(|_| ui::server_connect()), NoArgs, Some("server"))
-    .add("server scan", vec!["scan", "s"], " : Ask server for users open to echo", Some(|_| ui::server_get_online_users()), NoArgs, Some("server"))
+    }), Args, Some("server"))?
+    .add("server connect", vec!["connect", "con"], " : Connect to the server", Some(|_| ui::server_connect()), NoArgs, Some("server"))?
+    .add("server scan", vec!["scan", "s"], " : Ask server for users open to echo", Some(|_| ui::server_get_online_users()), NoArgs, Some("server"))?
     .add("server set echo availability", vec!["set-echo", "echo"], " <true/false> : Set whether you are open to echoing with other users", Some(|args| {
         match args.parse::<bool>() {
             Ok(availability) => ui::server_set_echo_availability(availability),
             Err(e) => Err(Failure::from((e.into(), FailureType::Warning))),
         }
-    }), Args, Some("server"));
+    }), Args, Some("server"))?;
 
 
     // input thread
