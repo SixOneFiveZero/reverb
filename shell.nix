@@ -1,11 +1,16 @@
 { pkgs ? import <nixpkgs> {} }:
 
 pkgs.mkShell {
-  buildInputs = with pkgs; [
+  nativeBuildInputs = with pkgs; [
+    pkg-config
     cargo
     rustc
     rust-analyzer
     rustfmt
     clippy
+  ];
+
+  buildInputs = with pkgs; [
+    alsa-lib
   ];
 }

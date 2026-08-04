@@ -111,6 +111,9 @@ impl Packet {
     pub fn payload(&self) -> &Box<dyn NetworkCommand + Send + Sync> {
         &self.payload
     }
+    pub fn into_payload(self) -> Box<dyn NetworkCommand + Send + Sync> {
+        self.payload
+    }
 }
 
 fn check_parameters(username: &str) -> Result<(), Failure> {

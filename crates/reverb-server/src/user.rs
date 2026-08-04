@@ -17,7 +17,7 @@ pub struct User {
 }
 
 pub fn register_new_user(packet: Packet) -> u64 {
-    let user_id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed); // wraps around when full overwriting existing users 
+    let user_id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed); // wraps around when full overwriting existing users
     let username = packet.username;
     let show_online = true;
     let show_group = true;
@@ -39,15 +39,9 @@ pub fn add_user(id: u64, user: User) -> u64 {
     id
 }
 pub fn remove_user(user_id: &u64) {
-    if let Some((_, user)) = USERS.remove(user_id)
-        && let Some((group_id, _)) = user.group_info {
-            let mut group_ref = GROUPS.get_mut(&group_id).unwrap();
-            let group = group_ref.value_mut();
-            group.users.remove(user_id);
-            if group.users.is_empty() {
-                remove_group(&group_id);
-            }
-        }
+    if let Some((_, mut user)) = USERS.remove(user_id) {
+        user.leave_group();
+    }
     ONLINE_USERS.remove(user_id);
     OPEN_USERS.remove(user_id);
 }

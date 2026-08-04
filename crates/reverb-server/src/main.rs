@@ -1,8 +1,10 @@
 use std::sync::{LazyLock, atomic::{AtomicU32, AtomicU64}};
+use anyhow::Result;
 use dashmap::{DashMap, DashSet};
 use quinn::Endpoint;
 
 use reverb_core::failure::failure::Failure;
+use tokio_rusqlite::Connection;
 use crate::{group::Group, network::connection, user::User};
 
 mod network;
@@ -33,9 +35,10 @@ static NEXT_GROUP_ID: AtomicU32 = AtomicU32::new(1);
 /// code 2 if fails at runtime.
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     let _ = rustls::crypto::ring::default_provider().install_default();
     println!("Server starting on {}", LISTEN_ADDR);
+    // let rusq_conn = Connection::open_in_memory().await?; // TODO: use rusq for users and groups
 
     // run server startup
     let endpoint = match server_startup::startup() {

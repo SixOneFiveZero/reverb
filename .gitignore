@@ -7,7 +7,6 @@
 certs/
 .envrc
 .direnv/
-shell.nix
 
 !sample/
 !sample/default_song.mp3
