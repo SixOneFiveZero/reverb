@@ -150,7 +150,7 @@ impl Local {
     fn load_new(&mut self, song: &Song) -> Result<(), Failure> {
         if let LOCAL(ref local_song) = song.song_type {
             self.stop()?;
-            let decoder = load_decoder(&local_song.song_path);
+            let decoder = load_decoder(&local_song.song_path)?;
             self.song_duration = local_song.get_duration();
             self.sink.append(decoder);
             Ok(())
@@ -179,6 +179,8 @@ impl Local {
     }
 }
 
-fn load_decoder(file_path: &str) -> Decoder<BufReader<File>> {
-    Decoder::new(BufReader::new(File::open(file_path).unwrap())).unwrap()
+fn load_decoder(file_path: &str) -> Result<Decoder<BufReader<File>>, Failure> {
+    Decoder::new(BufReader::new(File::open(file_path)
+    .map_err(|e| Failure::from((anyhow!(e), "Failed to open song file", FailureType::Warning)))?))
+    .map_err(|e| Failure::from((anyhow!(e), "Failed to create decoder for song", FailureType::Warning)))
 }
